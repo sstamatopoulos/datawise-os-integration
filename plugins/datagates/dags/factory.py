@@ -10,6 +10,13 @@ guard, summary refresh and backfill state machine unchanged.
 
 Device entities carry `dataGate: <key>` so each gate's run DAG finds
 exactly its own devices whatever `source` they share with another gate.
+
+One Airflow 3 trap, for whoever writes a test or a health check against
+this module: the `@dag` decorator here produces an `airflow.sdk` DAG, and
+`isinstance(x, airflow.models.DAG)` is False for it. Counting DAGs that
+way reports an empty bag while every DAG has in fact been built. Parse the
+folder with `airflow.models.dagbag.DagBag` instead, which is what the
+scheduler does and which also reports import errors with their file.
 """
 from __future__ import annotations
 

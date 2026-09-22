@@ -128,6 +128,11 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
   properties, as `open_meteo` already did. Reading a SCADA historian is usually
   the fastest way to get a legacy plant's history in, so it is worth the
   branch.
+- **Verify the DAG bag with `DagBag`, not with `isinstance(x, airflow.models.DAG)`.**
+  In Airflow 3 the `@dag` decorator produces an `airflow.sdk` DAG, a different
+  class from `airflow.models.DAG`, so the obvious test reports "no DAGs built"
+  while all of them were built. Cost the first CI run of this repository, which
+  is exactly what that job is for.
 - **Third-party drivers are imported inside the method that uses them.** A
   worker without `pymodbus` must still load every other DAG. Enforced by a test
   that blocks the imports and reloads every gate module; CI installs no field

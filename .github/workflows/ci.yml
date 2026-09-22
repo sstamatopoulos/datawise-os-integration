@@ -76,11 +76,30 @@ jobs:
       - name: the DAG bag of the enabled gates
         run: |
           python - <<'PY'
-          from airflow.models import DAG
-          import dags.datagates_dags as bag
-          ids = sorted(k for k, v in vars(bag).items() if isinstance(v, DAG))
-          print("\n".join(ids))
-          assert ids, "no DAGs built"
+          # Parse dags/ the way the scheduler does, so an import error is
+          # reported with its file and traceback instead of as an empty bag.
+          #
+          # Do not test this by importing the module and counting instances of
+          # airflow.models.DAG: in Airflow 3 the @dag decorator produces an
+          # airflow.sdk DAG, which is a different class, so every DAG is built
+          # and none is recognised.
+          from airflow.models.dagbag import DagBag
+
+          bag = DagBag(dag_folder="dags", include_examples=False, safe_mode=False)
+          for path, message in bag.import_errors.items():
+              print(f"::error file={path}::{message}")
+          assert not bag.import_errors, "the DAG folder has import errors"
+
+          expected = {
+              "weather_forecast_init", "weather_forecast_run",
+              "weather_observed_init", "weather_observed_run", "weather_observed_backfill",
+              "prices_init", "prices_run", "prices_backfill",
+          }
+          print("\n".join(sorted(bag.dags)))
+          missing, extra = expected - set(bag.dags), set(bag.dags) - expected
+          assert not missing, f"the enabled gates did not build: {sorted(missing)}"
+          assert not extra, f"unexpected DAGs in the bag: {sorted(extra)}"
+          print(len(bag.dags), "DAGs from the three enabled gates")
           PY
       - name: the DAGs of every gate in the catalogue, enabled or not
         run: |
@@ -92,5 +111,12 @@ jobs:
               built = build_dags(gate)
               total += len(built)
               print("%-18s %-14s %s" % (gate.key, gate.type_name, " ".join(sorted(built))))
+              # init and run always; backfill unless the upstream has no past.
+              wanted = 2 if gate.backfill_mode == "none" else 3
+              assert len(built) == wanted, f"{gate.key}: built {sorted(built)}, expected {wanted} DAGs"
           print(total, "DAGs built from the shipped catalogue")
+          # dags/datagates_dags.py deliberately swallows a broken gate so that
+          # one bad entry cannot empty the deployment's DAG bag. This step is
+          # where a broken entry must be loud instead, because the catalogue is
+          # documentation.
           PY
