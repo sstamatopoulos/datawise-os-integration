@@ -48,8 +48,16 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
 
 ### Verified
 
-- `ruff check .` clean; `pytest` 134 passed, 3 skipped (the SQLite-backed `sql`
-  tests skip without SQLAlchemy, which CI installs), on Python 3.13 locally.
+- `ruff check .` clean and the full suite green **in CI on Python 3.12 and
+  3.13** (137 tests; locally 134 pass and the three SQLite-backed `sql` tests
+  skip without SQLAlchemy).
+- **The DAG factory under a real Airflow 3.0.6**, in CI: `dags/` parses with
+  no import errors, the three enabled gates produce exactly their eight DAG
+  ids, and all 25 catalogue entries build 68 DAGs — with the six polling gates
+  correctly producing `init` and `run` only. Run 35720991192.
+- `pip install .` works and every built-in type resolves from the installed
+  package; all eight optional drivers install alongside the platform's own
+  dependencies (CI jobs `packaging` and `gate-extras`).
 - Every one of the 24 types constructs from its shipped example and returns
   devices from `discover()`; every gate module imports with all optional
   drivers blocked (both asserted by `tests/test_registry.py`).
@@ -67,23 +75,21 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
    payloads with the transport mocked at one method. Expect the first real
    Modbus, BACnet, S7, oBIX or SOAP endpoint to need a fix; that is what the
    one-method seam is for. Prioritise by what the pilots actually have.
-2. **The DAG factory under a real Airflow.** `factory.py` was written against
-   Airflow 3.0.6's API as used in production but has not been imported by
-   Airflow in this repository. CI's `dags-load` job does it for all 68 DAGs;
-   so does `docker compose up`.
-3. **The compose stack end to end.** Orion-LD 1.5.1 against an authenticated
+2. **The compose stack end to end.** Orion-LD 1.5.1 against an authenticated
    MongoDB 4.4 (`-dbuser/-dbpwd/-dbAuthDb`), InfluxDB first-boot setup, Airflow
    init with Fernet and JWT secrets, Caddy issuing localhost certificates and
    enforcing the API key. Expect small fixes (healthcheck commands, the mongo
    shell is `mongo` in 4.4 and `mongosh` in 6+, Airflow 3 base-URL settings
    behind a proxy).
-4. **One full cycle**: `weather_forecast_init` → `weather_forecast_run` →
+3. **One full cycle**: `weather_forecast_init` → `weather_forecast_run` →
    summaries in Orion have `lastReadingAt` → InfluxDB has the series under the
    summary URN → `weather_observed_backfill` loads 2024 onward →
    `verify_platform.py` reports nothing failing.
-5. **The optional drivers next to Airflow's dependency set.** CI's
-   `gate-extras` job installs them against `requirements.txt`, not against the
-   Airflow constraint file; the image build is the real test.
+4. **The optional drivers inside the Airflow image.** CI's `gate-extras` job
+   installs them against `requirements.txt` and they import cleanly, but not
+   under Airflow's constraint file; `docker compose build` is the real test,
+   and `python-snap7` additionally needs the native library, which is why it is
+   commented out in `requirements-gates.txt`.
 
 ## 3. Decisions and why (do not relitigate without reading)
 
@@ -210,7 +216,10 @@ Ordered. Each item is small enough for one session; finish it end to end
       `CITATION.cff` pointed at it. Making it public is one setting; it is
       deliberately not yet done, because the two items above have not been.
 - [ ] Work through the rest of `docs/publishing-checklist.md`: branch protection with the four CI jobs required, private vulnerability reporting, Dependabot alerts, and the `SECURITY.md` / `CITATION.cff` gaps (maintainers, authors, funding).
-- [ ] Tag `v0.2.0`, push to GitHub, confirm all four CI jobs are green.
+- [x] Confirm CI is green on `main`. Done 2026-09-22: all five jobs
+      (`lint-and-test` 3.12 and 3.13, `packaging`, `gate-extras`, `dags-load`).
+      The first run failed on `dags-load` and the fix is recorded in §3.
+- [ ] Tag `v0.2.0` once the stack above has been run, and make the repository public.
 
 ### M2 — Operability
 

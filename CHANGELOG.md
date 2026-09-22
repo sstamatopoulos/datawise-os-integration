@@ -61,10 +61,21 @@ the systems already installed on a site.
 - `docs/gates.md` rewritten around the catalogue, the shared blocks and the
   three kinds of gate.
 
+### Fixed
+
+- The CI check for the DAG bag counted instances of `airflow.models.DAG`,
+  which in Airflow 3 no decorated DAG is: `@dag` produces an `airflow.sdk`
+  DAG, so the check reported an empty bag while every DAG had been built. It
+  now parses the folder with `DagBag`, as the scheduler does, and reports
+  import errors with their file.
+
 ### Notes
 
-- The compose stack and the DAG factory under a real Airflow are still
-  unverified end to end; see §2 of `ROADMAP.md`.
+- Verified in CI: the suite on Python 3.12 and 3.13, `pip install .`, every
+  optional driver installing, and **the DAG factory under a real Airflow
+  3.0.6** — 68 DAGs from all 25 catalogue entries.
+- Still unverified: the compose stack end to end, one full ingest cycle, and
+  every new gate against a real upstream. See §2 of `ROADMAP.md`.
 
 ## 0.1.0 — unreleased
 

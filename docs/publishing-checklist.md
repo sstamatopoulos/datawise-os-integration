@@ -27,7 +27,8 @@ worked through top to bottom by whoever presses the button; tick the items in
 Do not publish a stack nobody has started. §2 of `ROADMAP.md` lists what is
 still unverified; these are the same items.
 
-- [ ] `ruff check .` clean and `pytest` green on 3.12 and 3.13.
+- [x] `ruff check .` clean and `pytest` green on 3.12 and 3.13. **Done**:
+      CI is green on `main`, including the DAG factory under Airflow 3.0.6.
 - [ ] `docker compose up -d --build` on a clean machine. Record every fix in
       `ROADMAP.md` — the next person hits the same ones.
 - [ ] One full cycle: `weather_forecast_init` → `weather_forecast_run` →
