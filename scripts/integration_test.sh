@@ -80,11 +80,33 @@ wait_for 180 "Orion-LD answers /version" \
 wait_for 180 "InfluxDB is healthy" \
   $COMPOSE exec -T influxdb curl -fsS http://localhost:8086/health
 
+# Airflow 3 runs tasks through the API server: the supervisor calls its
+# /execution endpoint, so a DAG triggered before that server is accepting
+# connections fails with "httpx.ConnectError: [Errno 111] Connection refused"
+# and the scheduler then reports the DAG missing from serialized_dag, which
+# reads like a parsing problem and is not one. Waiting on compose's own health
+# status is the fix; on a machine where the stack has been up for a while the
+# race never appears, which is why this only failed in CI.
+compose_healthy() {
+  local state
+  state="$($COMPOSE ps "$1" --format '{{.Health}}' 2>/dev/null | tail -1)"
+  [ "$state" = "healthy" ] && return 0
+  # A service with no healthcheck reports nothing; running is all we can ask.
+  [ -z "$state" ] && [ "$($COMPOSE ps "$1" --format '{{.State}}' 2>/dev/null | tail -1)" = "running" ]
+}
+wait_for 300 "the Airflow API server is healthy" compose_healthy airflow-apiserver
+wait_for 300 "the Airflow scheduler is healthy" compose_healthy airflow-scheduler
+
 # ── Airflow has parsed the DAG bag ───────────────────────────────────
 step "dag bag"
 bag_ready() { [ "$(airflow_cli dags list -o json | python3 -c \
   "import json,sys; print(len([d for d in json.load(sys.stdin) if d['dag_id'].startswith(('weather_','prices_'))]))" 2>/dev/null)" -ge 8 ]; }
 wait_for 420 "the eight DAGs of the three enabled gates are registered" bag_ready
+# Listed is not the same as serialized: the scheduler hands a task the
+# serialized DAG, and `dags details` is the cheapest thing that fails until it
+# exists.
+serialized() { airflow_cli dags details "$1" >/dev/null 2>&1; }
+wait_for 300 "${GATE}_init is serialized and ready to run" serialized "${GATE}_init"
 if ! airflow_cli dags list-import-errors | grep -q "No data found"; then
   fail "the DAG folder has import errors"
   airflow_cli dags list-import-errors | head -20

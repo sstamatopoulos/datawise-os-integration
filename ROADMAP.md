@@ -162,6 +162,17 @@ to the unit suite and to CI, which is the whole argument for running the thing.
    mode this platform has**, and this class of bug -- a filter that excludes
    everything -- produces it; `tests/test_core.py` pins the query shape.
 
+Its second run in CI found the one that matters for anyone scripting Airflow
+3: **a task talks to the API server, so triggering a DAG before that server
+accepts connections fails**, with `httpx.ConnectError: [Errno 111] Connection
+refused` in the supervisor and then "DAG not found in serialized_dag table" in
+the scheduler -- which reads like a parsing problem and is not one. `airflow
+dags list` answers before either the API server is healthy or the DAG is
+serialized, so the harness now waits on compose's health status for the API
+server and the scheduler, and on `airflow dags details` for serialization. On a
+machine where the stack has been up for a while none of this appears, which is
+exactly why it took CI to find it.
+
 The `integration` job's own first run cost two more, both about the
 difference between a script that works here and a script that works anywhere:
 `scripts/*.sh` were committed without the executable bit (git mode 100644), so
