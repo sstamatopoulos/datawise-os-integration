@@ -33,7 +33,12 @@ paramiko>=3.4             # remote_drop with protocol: sftp
 paho-mqtt>=2.1            # mqtt, and scripts/mqtt_spool.py
 
 # -- databases ---------------------------------------------------------
-SQLAlchemy>=2.0           # sql — plus the driver of your database:
+# 1.4, not >=2.0: Airflow 3.0.6 pins SQLAlchemy==1.4.54 and its ORM does not
+# survive being upgraded past it, so asking for 2.0 here produced an image
+# whose Airflow could not import. The sql gate uses create_engine, text() and
+# Result.mappings(), which are the same on 1.4 and 2.x; in the image the
+# constraints file decides, standalone you get whatever pip resolves.
+SQLAlchemy>=1.4           # sql — plus the driver of your database:
 # pyodbc>=5.1             #   SQL Server (also needs the Microsoft ODBC driver)
 # psycopg[binary]>=3.1    #   PostgreSQL
 # oracledb>=2.2           #   Oracle (thin mode: no client libraries needed)

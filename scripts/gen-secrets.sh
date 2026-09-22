@@ -15,7 +15,13 @@ rand() { openssl rand -base64 48 | tr -d '/+=\n' | cut -c1-"${1:-40}"; }
 fernet() { python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null \
            || docker run --rm apache/airflow:3.0.6 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"; }
 
+# On Linux the container must run as the invoking user or the bind-mounted
+# logs/ and drop/ directories end up root-owned. On Docker Desktop (Windows,
+# macOS) the mount translation layer handles ownership and `id -u` returns a
+# synthetic id -- 1058386 on a Git Bash -- which is meaningless inside the
+# image, so fall back to Airflow's own default.
 uid=$(id -u 2>/dev/null || echo 50000)
+if [[ ! "$uid" =~ ^[0-9]+$ ]] || (( uid > 60000 )); then uid=50000; fi
 cat > .env <<EOF
 # Generated $(date -u +%Y-%m-%dT%H:%M:%SZ) by scripts/gen-secrets.sh — keep private, never commit.
 
@@ -42,10 +48,32 @@ INFLUX_ADMIN_USER=admin
 INFLUX_ADMIN_PASSWORD=$(rand 24)
 INFLUX_TOKEN=$(rand 64)
 
-# Gate secrets referenced as \${VAR} from config/gates.yaml
+# Gate secrets referenced as \${VAR} from config/gates.yaml. Only the ones your
+# enabled gates use need a value; see .env.example for what each is for.
+SNMP_COMMUNITY=
+OPCUA_USER=
+OPCUA_PASSWORD=
+OBIX_USER=
+OBIX_PASSWORD=
+ZABBIX_TOKEN=
 TB_USERNAME=
 TB_PASSWORD=
 MESH_API_KEY=
+WS_USER=
+WS_PASSWORD=
+PORTAL_USER=
+PORTAL_PASSWORD=
+DH_USER=
+DH_PASSWORD=
+MQTT_USER=
+MQTT_PASSWORD=
+DB_USER=
+DB_PASSWORD=
+LEGACY_INFLUX_USER=
+LEGACY_INFLUX_PASSWORD=
+LEGACY_INFLUX_TOKEN=
+CITY_BROKER_KEY=
+ENTSOE_TOKEN=
 EOF
 chmod 600 .env
 echo "wrote .env (mode 600). Airflow login: admin / $(grep ^AIRFLOW_ADMIN_PASSWORD .env | cut -d= -f2)"

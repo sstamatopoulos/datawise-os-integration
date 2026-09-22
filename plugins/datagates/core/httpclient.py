@@ -1,5 +1,5 @@
 """
-datagates.core.http — the HTTP client every network gate uses.
+datagates.core.httpclient — the HTTP client every network gate uses.
 
 One place for the things that decide whether an integration survives a
 year in production:

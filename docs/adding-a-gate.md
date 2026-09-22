@@ -63,7 +63,7 @@ before writing the same code again; the first three save the most.
 | Need | Use | What it gives you |
 |---|---|---|
 | Map upstream fields to properties | `core.fieldmap.FieldMap` | the `fields:` block, `scale`/`offset`, `invalid:` sentinels, `min`/`max`, the cumulative set, decimal commas, NaN handling |
-| Talk HTTP | `core.http.client_for(self)` | retries on transient failures only, `Retry-After`, `min_interval_s` throttling, the `auth:` block, session reuse, a clear error when JSON was expected and HTML arrived |
+| Talk HTTP | `core.httpclient.client_for(self)` | retries on transient failures only, `Retry-After`, `min_interval_s` throttling, the `auth:` block, session reuse, a clear error when JSON was expected and HTML arrived |
 | Parse a timestamp | `core.timeparse.parse_stamp` | `iso`/`epoch_s`/`epoch_ms`/`strptime`, `timezone:` for naive stamps, `None` instead of an exception on a bad row |
 | Read registers or byte blocks | `core.binary` | typed decoding, word order, bit extraction |
 | Read rows out of XML | `core.xmlrows` | namespace-insensitive matching and the small selector language |
@@ -89,7 +89,7 @@ And two base classes that are worth subclassing rather than imitating:
 | Buildings, Devices, summaries created and re-registered idempotently | `<key>_init` |
 | Per-device watermark (`lastIngestedAt`), only new samples stored | `<key>_run` |
 | Long spans split into `max_window` requests | `<key>_run`, `<key>_backfill` |
-| Retries and request pacing (`max_attempts`, `min_interval_s`) | `core/http.py` |
+| Retries and request pacing (`max_attempts`, `min_interval_s`) | `core/httpclient.py` |
 | Readings a cumulative counter cannot have produced rejected | `core/counter_guard.py` |
 | Summary snapshot and rolling 24 h stats refreshed, never moved backwards | `core/measurement_summary.py` |
 | History walked backwards with resumable state per Device | `<key>_backfill` |

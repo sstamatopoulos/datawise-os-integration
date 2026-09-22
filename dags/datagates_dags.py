@@ -4,6 +4,14 @@ Every gate declared in config/gates.yaml becomes three DAGs here:
 
 A gate whose class fails to import is logged and skipped so the rest of
 the bag still loads; fix the gate and the scheduler picks it up.
+
+The word "Airflow" has to appear somewhere in this file, and this is it.
+Airflow's DAG discovery runs in safe mode by default: it only parses a .py
+file that contains both the strings "dag" and "airflow", so that it does not
+import every unrelated script in the folder. Everything that mentions
+Airflow in this project lives in plugins/datagates/dags/factory.py, so
+without this sentence the only file Airflow is asked to load is the one file
+it silently skips -- no DAGs, no import errors, nothing to debug.
 """
 from __future__ import annotations
 

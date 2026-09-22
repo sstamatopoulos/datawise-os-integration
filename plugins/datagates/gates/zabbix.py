@@ -53,7 +53,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from datagates.core.fieldmap import FieldMap
-from datagates.core.http import client_for
+from datagates.core.httpclient import client_for
 from datagates.core.timeparse import iso_z
 from datagates.gates.base import DeviceSpec, Gate, Sample
 

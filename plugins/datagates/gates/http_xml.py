@@ -57,7 +57,7 @@ from datetime import datetime
 from typing import Any
 
 from datagates.core.fieldmap import FieldMap
-from datagates.core.http import client_for, query_auth
+from datagates.core.httpclient import client_for, query_auth
 from datagates.core.timeparse import iso_z, parse_stamp, zone_of
 from datagates.core.xmlrows import parse_xml, pick, select
 from datagates.gates.base import DeviceSpec, Gate, Sample

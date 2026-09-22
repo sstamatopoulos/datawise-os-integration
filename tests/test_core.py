@@ -14,7 +14,7 @@ import requests
 from datagates.core.binary import decode, decode_bits, decode_registers, register_count, size_of
 from datagates.core.cadence import describe, expected_interval
 from datagates.core.fieldmap import FieldMap, to_float
-from datagates.core.http import HttpClient, auth_from_options, query_auth
+from datagates.core.httpclient import HttpClient, auth_from_options, query_auth
 from datagates.core.timeparse import iso_z, parse_stamp, zone_of
 from datagates.core.xmlrows import parse_xml, pick, row_of, select, self_and_attributes
 
@@ -128,7 +128,7 @@ def test_http_client_retries_transient_status_and_honours_retry_after():
     client = HttpClient(max_attempts=3)
     client.session = MagicMock()
     client.session.request.side_effect = [_response(429, {"Retry-After": "2"}), _response(200)]
-    with patch("datagates.core.http.time.sleep") as sleep:
+    with patch("datagates.core.httpclient.time.sleep") as sleep:
         assert client.request("GET", "https://x/").status_code == 200
     assert sleep.call_args_list[-1].args[0] == 2.0, "Retry-After beats exponential backoff"
     assert client.session.request.call_count == 2
@@ -147,7 +147,7 @@ def test_http_client_gives_up_after_max_attempts():
     client = HttpClient(max_attempts=2)
     client.session = MagicMock()
     client.session.request.return_value = _response(503)
-    with patch("datagates.core.http.time.sleep"), pytest.raises(requests.HTTPError):
+    with patch("datagates.core.httpclient.time.sleep"), pytest.raises(requests.HTTPError):
         client.request("GET", "https://x/")
     assert client.session.request.call_count == 2
 
@@ -156,7 +156,7 @@ def test_http_client_throttles_to_min_interval():
     client = HttpClient(min_interval_s=0.5)
     client.session = MagicMock()
     client.session.request.return_value = _response(200)
-    with patch("datagates.core.http.time.sleep") as sleep:
+    with patch("datagates.core.httpclient.time.sleep") as sleep:
         client.request("GET", "https://x/")
         client.request("GET", "https://x/")
     assert sleep.called and 0 < sleep.call_args.args[0] <= 0.5

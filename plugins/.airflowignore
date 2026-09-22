@@ -1,0 +1,23 @@
+# Keep Airflow's plugin scanner out of the datagates package.
+#
+# Airflow imports every .py file under plugins/ using a module name taken from
+# the file's *basename*, and registers it in sys.modules under that name. Two
+# things went wrong here before this file existed:
+#
+#   * datagates/core/http.py was imported as `http`, shadowing the standard
+#     library for the entire process. Everything that then did
+#     `from http import HTTPStatus` -- urllib3, requests, Airflow itself --
+#     failed, DAG parsing produced zero files, and `airflow dags list-import-
+#     errors` reported nothing at all, because the failure happened before any
+#     DAG file was read. (The module is now called httpclient.py, but the trap
+#     applies to any name the standard library also uses: json, logging,
+#     types, select, socket, email, csv...)
+#   * datagates/__main__.py was imported as `__main__`, so its
+#     `if __name__ == "__main__"` guard was true and the CLI parsed Airflow's
+#     own argv: `airflow users create` died with "invalid choice: 'users'".
+#
+# Nothing in datagates is an Airflow plugin -- it declares no AirflowPlugin --
+# and the package is imported normally through PYTHONPATH, which
+# docker-compose sets to /opt/airflow/plugins. So there is nothing here for
+# the scanner to find and every reason to keep it out.
+datagates/

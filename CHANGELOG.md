@@ -28,7 +28,7 @@ the systems already installed on a site.
   enforced by a test: the catalogue cannot drift from the code.
 - **Shared machinery** so gates stay short and behave alike: `core/fieldmap.py`
   (the `fields:` block, with `scale`, `offset`, `invalid:` sentinels and
-  ranges), `core/http.py` (retry policy, `Retry-After`, request pacing, the
+  ranges), `core/httpclient.py` (retry policy, `Retry-After`, request pacing, the
   `auth:` block), `core/timeparse.py`, `core/binary.py` (register and byte
   decoding, word order), `core/xmlrows.py`, `core/cadence.py`, and the
   `PollingGate` and `FileDropGate` base classes.

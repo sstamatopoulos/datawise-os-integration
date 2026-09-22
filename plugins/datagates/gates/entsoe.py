@@ -56,7 +56,7 @@ from typing import Any
 
 import requests
 
-from datagates.core.http import client_for
+from datagates.core.httpclient import client_for
 from datagates.core.timeparse import iso_z, parse_stamp
 from datagates.core.xmlrows import parse_xml, select
 from datagates.gates.base import DeviceSpec, Gate, Sample

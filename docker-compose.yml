@@ -91,7 +91,14 @@ services:
   caddy:
     image: caddy:2
     logging: *default-logging
-    ports: ["80:80", "443:443", "443:443/udp"]
+    # 80 and 443 by default, because that is what TLS and Let's Encrypt's
+    # HTTP and TLS-ALPN challenges need. Override on a machine that already
+    # runs something on those ports (HTTP_PORT=8080 HTTPS_PORT=8443 in .env);
+    # certificates then have to come from a DNS challenge or be provided.
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
     environment:
       PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-}
@@ -134,7 +141,13 @@ services:
   orion-ld:
     image: fiware/orion-ld:1.5.1
     logging: *default-logging
-    command: -dbhost mongo -dbAuthDb admin -dbuser ${MONGO_USER:-orion} -dbpwd ${MONGO_PASSWORD:?run scripts/gen-secrets.sh} -logLevel WARN -forwarding
+    # -dbURI, not -dbhost/-dbuser/-dbpwd/-dbAuthDb. Orion-LD 1.5.1 turns
+    # `-dbAuthDb admin` into the query string "?admin" and then refuses its own
+    # URI ('URI option "admin" contains no "=" sign'), so the broker
+    # crash-loops against an authenticated MongoDB. Building the URI here
+    # sidesteps it. Note that Orion-LD logs this URI, password included, when
+    # it cannot connect - see SECURITY.md.
+    command: -dbURI mongodb://${MONGO_USER:-orion}:${MONGO_PASSWORD:?run scripts/gen-secrets.sh}@mongo:27017/?authSource=admin -logLevel WARN -forwarding
     networks: [internal]
     depends_on:
       mongo: {condition: service_healthy}

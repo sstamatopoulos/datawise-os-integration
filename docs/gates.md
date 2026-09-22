@@ -39,7 +39,7 @@ disabled example of each type. Copy the example, not the table.
 | `options` | type-specific, below; `${VAR}` and `${VAR:-default}` expand from the environment | |
 
 `max_attempts` and `min_interval_s` are applied by the framework
-(`core/http.py`), which retries only transient failures — connection reset,
+(`core/httpclient.py`), which retries only transient failures — connection reset,
 timeout, 429, 5xx — and honours `Retry-After`. A 401 or 404 fails the task
 immediately, because it is a configuration error and retrying it just
 exhausts the upstream's rate limit. Set `min_interval_s` for any upstream

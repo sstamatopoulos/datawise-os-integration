@@ -15,7 +15,7 @@ A new gate type is the most useful contribution there is, and the most useful
 gate types are the unglamorous ones: the protocol or export format that a
 whole class of buildings is stuck with. Follow
 [docs/adding-a-gate.md](docs/adding-a-gate.md) and use the shared machinery
-(`core.fieldmap`, `core.http`, `core.timeparse`, `PollingGate`,
+(`core.fieldmap`, `core.httpclient`, `core.timeparse`, `PollingGate`,
 `FileDropGate`) rather than reimplementing it — a built-in gate is usually
 80 to 150 lines because of them.
 

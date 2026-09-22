@@ -263,7 +263,7 @@ by somebody remembering to check.
 
 - [x] Rate limiting and retry policy per gate as YAML options
       (`min_interval_s`, `max_attempts`) handled by the framework, so gates
-      stop re-implementing it (`core/http.py`). Done 2026-09-22.
+      stop re-implementing it (`core/httpclient.py`). Done 2026-09-22.
 - [ ] `dags/health_check.py`: daily DAG that counts entities per gate, flags summaries whose `lastReadingAt` is older than the gate's cadence (`core.cadence.expected_interval` already computes it), optionally emails (SMTP via env, off by default). Reuse the check functions in `scripts/verify_platform.py` rather than writing them twice.
 - [ ] `dags/dq_weekly_report.py`: per-device data-quality report entities (`DataQualityReport`), ported from production: gaps, out-of-range values, counters running backwards.
 - [ ] Gate `status()` for `http_json` and `snmp` (map a "latest values" endpoint or a set of health OIDs to Device attributes) so battery/signal style health lands on entities.
@@ -397,7 +397,7 @@ the second and third deployment.
   new `${VAR}`s in `.env.example` and `docker-compose.yml`; a section in
   `docs/gates.md`; a row in `docs/legacy-systems.md` if it maps to real
   products; tests.
-- Use the shared machinery (`core.fieldmap`, `core.http`, `core.timeparse`,
+- Use the shared machinery (`core.fieldmap`, `core.httpclient`, `core.timeparse`,
   `core.binary`, `core.xmlrows`, `PollingGate`, `FileDropGate`) instead of
   reimplementing it. A built-in gate is 80 to 150 lines because of them; a gate
   that is 400 lines is usually re-solving a solved problem.

@@ -20,6 +20,10 @@ classifiers = [
 ]
 dependencies = ["influxdb-client>=1.49", "requests", "tenacity", "PyYAML"]
 
+# `datagates check <key>` without Airflow; see datagates/cli.py.
+[project.scripts]
+datagates = "datagates.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/sstamatopoulos/datawise-os-integration"
 Documentation = "https://github.com/sstamatopoulos/datawise-os-integration/tree/main/docs"

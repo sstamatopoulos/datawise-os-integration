@@ -133,7 +133,7 @@ class Gate(ABC):
     # data). For sources that revise recent values, e.g. a reanalysis.
     rewrite_lookback: ClassVar[timedelta] = timedelta(0)
     # Request policy defaults; gates.yaml overrides them per gate and
-    # core.http applies them, so no gate implements retrying itself.
+    # core.httpclient applies them, so no gate implements retrying itself.
     default_max_attempts: ClassVar[int] = 4
     default_min_interval_s: ClassVar[float] = 0.0
     # Free-text: which upstream product family this gate speaks to, shown
