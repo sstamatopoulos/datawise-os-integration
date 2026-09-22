@@ -189,6 +189,18 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
 
 ### Project
 
+- **Caddy, not nginx, in front of everything.** Confirmed 2026-09-22. It
+  issues and renews certificates itself — its own CA for `localhost`, ACME for
+  a real `PUBLIC_HOST` — so there is no certbot sidecar, no renewal cron and
+  no "the certificate expired on a Sunday". The broker's API-key gate is four
+  lines and can answer with a proper NGSI-LD `ProblemDetails` body, which a
+  consumer's error handling will not choke on. The whole proxy is one file
+  with environment substitution built in.
+  The honest trade-off: nginx is more widely operated and more tunable, and
+  plenty of organisations standardise on it. Nothing in the platform depends
+  on Caddy-specific behaviour, so swapping is a contained change — one config
+  file and one compose service, keeping the contract in `proxy/Caddyfile`'s
+  header. Treat this as a preference with a reason, not as a constraint.
 - **Env-only settings, YAML-only gate config, `${VAR}` for secrets.** No
   `config.ini` files, ever.
 - **Apache-2.0** as the usual choice for Horizon Europe software outputs.

@@ -8,6 +8,17 @@
 #   {PUBLIC_HOST}          Airflow (its own login)
 #   orion.{PUBLIC_HOST}    NGSI-LD broker, X-API-Key required
 #   influx.{PUBLIC_HOST}   InfluxDB (its own token / login)
+#
+# Replacing this with nginx or another proxy is a contained change (see the
+# reasoning in ROADMAP.md section 3). Whatever does the job has to keep four
+# promises, because the rest of the platform assumes them:
+#   1. it is the only service that publishes a port; every backend stays on
+#      the internal network;
+#   2. TLS on all three hostnames, with renewal that nobody has to remember;
+#   3. the broker is unreachable without a valid X-API-Key, and a rejected
+#      request gets 401 with an NGSI-LD ProblemDetails body, not an HTML page
+#      a consumer will try to parse as JSON;
+#   4. HSTS and the hardening headers below, on every hostname.
 {
 	email {$ACME_EMAIL}
 }
