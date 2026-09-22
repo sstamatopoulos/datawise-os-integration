@@ -246,3 +246,28 @@ def test_every_configured_gate_has_a_cadence_a_health_check_can_use(monkeypatch)
     from datagates.gates.registry import load_gates
     for gate in load_gates(include_disabled=True):
         assert expected_interval(gate.schedule), f"{gate.key}: schedule {gate.schedule!r} is not interpretable"
+
+
+# ── the device query ────────────────────────────────────────────────
+
+def test_a_gates_devices_are_found_whatever_entity_type_they_use():
+    """A type filter of "Device" hid open_meteo's WeatherForecastLocation and
+    entsoe's MarketPriceFeed devices, so their run DAGs mapped over nothing
+    and reported success. The query must key on dataGate alone."""
+    from datagates.core.orion_registry import OrionRegistry
+
+    registry = OrionRegistry()
+    with patch("datagates.core.orion_registry.requests.get") as get:
+        get.return_value.json.return_value = []
+        get.return_value.raise_for_status.return_value = None
+
+        registry.get_all_devices(q='dataGate=="weather_forecast"')
+        assert "type" not in get.call_args.kwargs["params"], \
+            "filtering on type=Device silently drops gates with their own entity type"
+        assert get.call_args.kwargs["params"]["q"] == 'dataGate=="weather_forecast"'
+
+        registry.get_all_devices()
+        assert get.call_args.kwargs["params"]["type"] == "Device", "unfiltered listing keeps its default"
+
+        registry.get_all_devices(q='dataGate=="x"', entity_type="MarketPriceFeed")
+        assert get.call_args.kwargs["params"]["type"] == "MarketPriceFeed", "narrowing stays possible"

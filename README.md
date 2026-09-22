@@ -82,6 +82,81 @@ Then check the deployment:
 python scripts/verify_platform.py            # connectivity, model, bridge, freshness, queries
 ```
 
+## Verified output
+
+From a first run on 2026-09-22 (Docker Desktop, Airflow 3.0.6, Orion-LD 1.5.1,
+InfluxDB 2.7). `weather_forecast_init` then `weather_forecast_run`, and the
+summary entity for one of the eleven properties:
+
+```json
+{
+  "id": "urn:ngsi-ld:DeviceMeasurement:8a921cde-c4dc-589c-8054-dd1f0ea3d532",
+  "type": "DeviceMeasurement",
+  "entityKind":         {"type": "Property", "value": "summary"},
+  "controlledProperty": {"type": "Property", "value": "temperature"},
+  "unitCode":           {"type": "Property", "value": "CEL"},
+  "refDevice":          {"type": "Relationship",
+                         "object": "urn:ngsi-ld:WeatherForecastLocation:weather_forecast-riga"},
+  "lastReadingAt":      {"type": "Property", "value": "2026-09-24T11:00:00Z"},
+  "lastReadingValue":   {"type": "Property", "value": 12.2},
+  "rolling24hMin":      {"type": "Property", "value": 15.2},
+  "rolling24hMax":      {"type": "Property", "value": 15.2},
+  "rolling24hMean":     {"type": "Property", "value": 15.2},
+  "rolling24hCount":    {"type": "Property", "value": 1},
+  "influxBucket":       {"type": "Property", "value": "telemetry"},
+  "influxMeasurement":  {"type": "Property",
+                         "value": "urn:ngsi-ld:DeviceMeasurement:8a921cde-c4dc-589c-8054-dd1f0ea3d532"}
+}
+```
+
+`influxMeasurement` is the entity's own id — that is the convention, and it is
+why a consumer needs no lookup table. Dropping it into Flux (note the `stop:`,
+because a forecast is in the future):
+
+```
+$ influx query 'from(bucket:"telemetry")
+    |> range(start: -3d, stop: 3d)
+    |> filter(fn: (r) => r._measurement == "urn:ngsi-ld:DeviceMeasurement:8a921cde-c4dc-589c-8054-dd1f0ea3d532"
+                      and r._field == "value")
+    |> count()'
+
+_field   _measurement                                                        _value
+value    urn:ngsi-ld:DeviceMeasurement:8a921cde-c4dc-589c-8054-dd1f0ea3d532      48
+```
+
+48 points, the 48-hour forecast horizon. `weather_observed_backfill` over
+August onward loaded 1249 hourly ERA5 points per property. And the deployment
+check:
+
+```
+$ python scripts/verify_platform.py --gate weather_forecast
+-- connectivity ----------------------------------------------
+[  ok  ] Orion-LD answers: version 1.5.1
+[  ok  ] InfluxDB is healthy
+[  ok  ] bucket 'telemetry' exists
+-- model -----------------------------------------------------
+[  ok  ] weather_forecast: 1 configured device(s) registered: 1 in the broker
+[  ok  ] weather_forecast: Riga location is a GeoProperty
+-- bridge ----------------------------------------------------
+[  ok  ] weather_forecast: temperature points at its own measurement
+[  ok  ] weather_forecast: temperature has points in InfluxDB: 49 point(s)
+     ... one pair per property ...
+-- freshness -------------------------------------------------
+[  ok  ] weather_forecast: summaries are within 18:00:00: 11 fresh, 0 stale, 0 never written (every 6 h)
+-- queries ---------------------------------------------------
+[  ok  ] type filter (WeatherForecastLocation) returns entities: 1 entity/entities
+[  ok  ] summary filter returns entities: 1 entity/entities
+[  ok  ] gate filter returns entities: 1 entity/entities
+[  ok  ] attribute names are not expanded: short names only, as documented
+
+31 ok, 0 warning(s), 0 failure(s)
+```
+
+Getting there took seven fixes that no unit test could have found; they are
+listed in `ROADMAP.md` §2 and explained in §3. The gates that talk to
+credentialed and field-protocol upstreams are still unverified against real
+hardware — the same section says so.
+
 ## Configure a gate
 
 ```yaml

@@ -101,7 +101,9 @@ services:
       - "${HTTPS_PORT:-443}:443/udp"
     environment:
       PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      # Never empty: an empty `email` is a Caddyfile parse error (see the
+      # comment in proxy/Caddyfile). Set ACME_EMAIL for a real PUBLIC_HOST.
+      ACME_EMAIL: ${ACME_EMAIL:-acme-email-not-set@example.invalid}
       ORION_API_KEY: ${ORION_API_KEY:?run scripts/gen-secrets.sh}
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
@@ -141,13 +143,21 @@ services:
   orion-ld:
     image: fiware/orion-ld:1.5.1
     logging: *default-logging
-    # -dbURI, not -dbhost/-dbuser/-dbpwd/-dbAuthDb. Orion-LD 1.5.1 turns
-    # `-dbAuthDb admin` into the query string "?admin" and then refuses its own
-    # URI ('URI option "admin" contains no "=" sign'), so the broker
-    # crash-loops against an authenticated MongoDB. Building the URI here
-    # sidesteps it. Note that Orion-LD logs this URI, password included, when
-    # it cannot connect - see SECURITY.md.
-    command: -dbURI mongodb://${MONGO_USER:-orion}:${MONGO_PASSWORD:?run scripts/gen-secrets.sh}@mongo:27017/?authSource=admin -logLevel WARN -forwarding
+    # No -dbAuthDb, and no -dbURI either. Orion-LD 1.5.1 opens two connections
+    # to MongoDB, with two drivers that read the configuration differently, and
+    # only one combination satisfies both:
+    #   * `-dbAuthDb admin` is appended to the C driver's connection string as
+    #     a bare query option, which the driver then rejects
+    #     ('URI option "admin" contains no "=" sign') - the broker crash-loops;
+    #   * `-dbURI ...` fixes the C driver but the legacy C++ pool ignores it and
+    #     connects with no credentials at all - "unable connect to mongo after a
+    #     number of retries", and the broker crash-loops again.
+    # Omitting both leaves `mongodb://user:pass@mongo/`, whose authSource
+    # defaults to admin, which is exactly where MONGO_INITDB_ROOT_USERNAME
+    # creates the user. Both drivers are happy.
+    # Note: Orion-LD logs this connection string, password included, whenever
+    # it cannot connect. See SECURITY.md.
+    command: -dbhost mongo -dbuser ${MONGO_USER:-orion} -dbpwd ${MONGO_PASSWORD:?run scripts/gen-secrets.sh} -logLevel WARN -forwarding
     networks: [internal]
     depends_on:
       mongo: {condition: service_healthy}

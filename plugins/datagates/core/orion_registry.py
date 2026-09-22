@@ -199,14 +199,29 @@ class OrionRegistry:
                 continue
         return out
 
-    def get_all_devices(self, limit: int = 1000, q: str | None = None) -> list[dict[str, Any]]:
+    def get_all_devices(self, limit: int = 1000, q: str | None = None,
+                        entity_type: str | None = None) -> list[dict[str, Any]]:
         """
-        Return Device entities (up to limit).
-        Pass q to filter server-side, e.g. q='dataGate=="weather"'
+        Return the devices of a gate (up to limit).
+        Pass q to filter server-side, e.g. q='dataGate=="weather"'.
+
+        **No type filter when q is given, deliberately.** A gate may register
+        its devices under any entity type -- open_meteo uses
+        WeatherForecastLocation, entsoe uses MarketPriceFeed -- and
+        `type=Device` silently returned nothing for those. The run DAG then
+        mapped over zero devices, wrote nothing, and reported success: the
+        weather gates shipped enabled in config/gates.yaml ingested nothing at
+        all and nothing anywhere said so.
+
+        `dataGate=="<key>"` identifies exactly one gate's devices on its own,
+        because summary entities carry dataProvider and entityKind but never
+        dataGate. Pass entity_type explicitly to narrow it further.
         """
-        params: dict = {"type": "Device", "limit": limit}
+        params: dict = {"limit": limit}
         if q:
             params["q"] = q
+        if entity_type or not q:
+            params["type"] = entity_type or "Device"
         resp = requests.get(
             self._url("/ngsi-ld/v1/entities"),
             headers=_HEADERS,

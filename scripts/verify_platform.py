@@ -223,7 +223,12 @@ def check_bridge(report: Report, gates: list, devices: dict[str, list[dict[str, 
                            OK if matches else FAIL,
                            "" if matches else f"influxMeasurement is {measurement!r}, expected {expected!r}")
                 bucket = plain(summary, "influxBucket", gate.bucket)
-                rows = influx_flux(f'from(bucket: "{bucket}") |> range(start: -90d) '
+                # The window has to reach into the future. A forecast gate's
+                # points are all ahead of now, so `range(start: -90d)` alone
+                # counted 2 of the 48 hours actually stored and called that
+                # healthy -- the same trap docs/data-model.md warns consumers
+                # about, in the script meant to check it.
+                rows = influx_flux(f'from(bucket: "{bucket}") |> range(start: -90d, stop: 90d) '
                                    f'|> filter(fn: (r) => r._measurement == "{expected}") |> count()')
                 counted = sum(int(r.get("_value") or 0) for r in rows)
                 report.add("bridge", f"{gate.key}: {prop} has points in InfluxDB",
@@ -258,8 +263,13 @@ def check_freshness(report: Report, gates: list) -> None:
 
 def check_queries(report: Report, gates: list) -> None:
     section("queries")
-    probes = [
-        ("type filter", {"type": "Device", "limit": 1}),
+    # Probe the entity types the configured gates actually register, not
+    # "Device": open_meteo registers WeatherForecastLocation and entsoe
+    # MarketPriceFeed, so a hard-coded Device probe reported zero entities on a
+    # perfectly healthy deployment and taught the reader to ignore warnings.
+    types = sorted({spec.entity_type for gate in gates for spec in gate.discover()})
+    probes = [(f"type filter ({name})", {"type": name, "limit": 1}) for name in types]
+    probes += [
         ("summary filter", {"type": "DeviceMeasurement", "q": 'entityKind=="summary"', "limit": 1}),
         ("gate filter", {"q": f'dataGate=="{gates[0].key}"', "limit": 1} if gates else {"limit": 1}),
     ]

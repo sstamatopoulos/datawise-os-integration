@@ -69,13 +69,36 @@ the systems already installed on a site.
   now parses the folder with `DagBag`, as the scheduler does, and reports
   import errors with their file.
 
+- **The run DAG found no devices for any gate registering its own entity
+  type.** `get_all_devices` filtered on `type=Device`, so `open_meteo`
+  (`WeatherForecastLocation`) and `entsoe` (`MarketPriceFeed`) mapped over zero
+  devices, wrote nothing and reported success — the two gates enabled by
+  default ingested nothing at all. The query now keys on `dataGate` alone.
+- **The image upgraded SQLAlchemy past what Airflow supports**, leaving an
+  image that built cleanly and whose Airflow could not import. Extras install
+  under Airflow's constraints now, and the build asserts the import.
+- **Orion-LD crash-looped against an authenticated MongoDB**, and **Caddy
+  restart-looped on an empty `email` argument**. Both are compose fixes with
+  the reasoning recorded in `ROADMAP.md` §3.
+- **A module named `http.py` under `plugins/` shadowed the standard library**
+  once Airflow's plugin scanner imported it by basename, which broke DAG
+  parsing with no import error to show. Renamed to `httpclient.py`, and
+  `plugins/.airflowignore` keeps the scanner out.
+- `scripts/verify_platform.py` counted forecast points with a past-only Flux
+  range and probed `type=Device`, so it under-reported points and warned on a
+  healthy deployment.
+
 ### Notes
 
 - Verified in CI: the suite on Python 3.12 and 3.13, `pip install .`, every
   optional driver installing, and **the DAG factory under a real Airflow
   3.0.6** — 68 DAGs from all 25 catalogue entries.
-- Still unverified: the compose stack end to end, one full ingest cycle, and
-  every new gate against a real upstream. See §2 of `ROADMAP.md`.
+- **Verified on a live stack** (2026-09-22): ten services up, the weather
+  cycle end to end — 48 forecast points and 1249 backfilled ERA5 points per
+  property — and `verify_platform.py` with no failures. Output in `README.md`.
+- Still unverified: the proxy from outside, the counter guard / `status()` /
+  cursor-backfill paths, and every gate that needs credentials or hardware.
+  See §2 of `ROADMAP.md`.
 
 ## 0.1.0 — unreleased
 

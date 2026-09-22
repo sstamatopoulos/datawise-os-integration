@@ -67,6 +67,15 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
   trace, when no broker is reachable.
 - The gate logic of the five original types against real upstreams was verified
   **in the private repository** before being ported.
+- **The compose stack, end to end, on 2026-09-22** (Docker Desktop, Windows):
+  all ten services healthy, Airflow registering the eight DAGs of the three
+  enabled gates, `weather_forecast_init` -> `weather_forecast_run` ->
+  48 forecast points in InfluxDB under the summary URN, summaries carrying
+  `lastReadingAt`/`lastReadingValue`/rolling stats, and
+  `weather_observed_backfill` loading 1249 hourly ERA5 points per property.
+  `scripts/verify_platform.py` reports 0 failures and 0 warnings. The output
+  is in `README.md` under "Verified output". It took the seven fixes listed
+  below, none of which 137 unit tests or five CI jobs could have found.
 
 ### Not yet verified — do these first
 
@@ -75,23 +84,86 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
    payloads with the transport mocked at one method. Expect the first real
    Modbus, BACnet, S7, oBIX or SOAP endpoint to need a fix; that is what the
    one-method seam is for. Prioritise by what the pilots actually have.
-2. **The compose stack end to end.** Orion-LD 1.5.1 against an authenticated
-   MongoDB 4.4 (`-dbuser/-dbpwd/-dbAuthDb`), InfluxDB first-boot setup, Airflow
-   init with Fernet and JWT secrets, Caddy issuing localhost certificates and
-   enforcing the API key. Expect small fixes (healthcheck commands, the mongo
-   shell is `mongo` in 4.4 and `mongosh` in 6+, Airflow 3 base-URL settings
-   behind a proxy).
-3. **One full cycle**: `weather_forecast_init` → `weather_forecast_run` →
-   summaries in Orion have `lastReadingAt` → InfluxDB has the series under the
-   summary URN → `weather_observed_backfill` loads 2024 onward →
-   `verify_platform.py` reports nothing failing.
-4. **The optional drivers inside the Airflow image.** CI's `gate-extras` job
-   installs them against `requirements.txt` and they import cleanly, but not
-   under Airflow's constraint file; `docker compose build` is the real test,
-   and `python-snap7` additionally needs the native library, which is why it is
-   commented out in `requirements-gates.txt`.
+2. **The proxy, from outside.** Caddy starts and parses its configuration, but
+   nothing has yet fetched a page through it: TLS with its internal CA, the
+   `X-API-Key` gate on the broker, and the Airflow UI behind it are all
+   untested. On the machine where this first ran, ports 80/443 were already
+   taken by another project, so it was brought up on HTTP_PORT/HTTPS_PORT
+   instead -- which also means Let's Encrypt has never been exercised.
+3. **`prices` (Nord Pool) and everything credentialed.** Only the two weather
+   gates have run. Nord Pool needs no key and should be next; it is one
+   `airflow dags trigger` away.
+4. **The counter guard, the status path and the cursor backfill.** The weather
+   gates have no cumulative properties, implement no `status()`, and use the
+   stateless backfill, so three paths that matter to meters are still only
+   unit-tested: the guard rejecting an impossible reading, `refresh_status`
+   patching Device attributes, and the cursor walk with its resumable state.
+   A `csv_drop` gate over a handful of invented rows would exercise all three
+   without any credentials, and is the cheapest next verification there is.
 
 ## 3. Decisions and why (do not relitigate without reading)
+
+### What the first run cost, and what it taught
+
+Seven fixes, 2026-09-22, in the order they were found. Every one was invisible
+to the unit suite and to CI, which is the whole argument for running the thing.
+
+1. **`core/http.py` shadowed the standard library.** Airflow imports every file
+   under `plugins/` using its *basename* as the module name, so ours landed in
+   `sys.modules` as `http`. Everything that then did `from http import
+   HTTPStatus` -- urllib3, requests, Airflow itself -- broke, DAG parsing found
+   zero files, and `airflow dags list-import-errors` said nothing at all,
+   because the failure happened before any DAG file was read. Renamed to
+   `httpclient.py`; `plugins/.airflowignore` now keeps the scanner out of the
+   package. **Never name a module in `plugins/` after a stdlib module**: json,
+   logging, types, select, socket, email, csv, queue, platform, secrets.
+2. **`datagates/__main__.py` hijacked the Airflow CLI** by the same mechanism:
+   imported as `__main__`, its `if __name__ == "__main__"` guard was true, and
+   `airflow users create` died with "invalid choice: 'users'". The guard checks
+   `__package__` too now.
+3. **`dags/datagates_dags.py` did not contain the word "Airflow".** DAG
+   discovery runs in safe mode and only parses files containing both "dag" and
+   "airflow"; everything Airflow-related lives in `plugins/`, so the one file
+   Airflow loads was the one file it skipped. The CI job had passed
+   `safe_mode=False`, which is why it could not have caught this -- a test
+   harness that disables the behaviour under test proves nothing.
+4. **The gate extras upgraded SQLAlchemy out from under Airflow.** Airflow
+   3.0.6 pins 1.4.54; `requirements-gates.txt` asked for `>=2.0`, and without
+   the constraints file pip obliged, after which Airflow's ORM would not
+   import. The image now installs the extras under the same constraints and the
+   build asserts that `airflow` and `TaskInstance` still import. CI runs the
+   `sql` gate's tests against 1.4 and 2.x, because the image and a standalone
+   install now genuinely differ.
+5. **Orion-LD 1.5.1 opens two Mongo connections with two drivers.**
+   `-dbAuthDb admin` is appended to the C driver's URI as a bare query option,
+   which it rejects ('URI option "admin" contains no "=" sign'); `-dbURI` fixes
+   that driver but the legacy C++ pool ignores it and connects with no
+   credentials. Passing neither leaves `mongodb://user:pass@mongo/`, whose
+   authSource defaults to admin, where the root user is. Both drivers connect.
+   Orion-LD also logs that URI, password included, whenever it cannot connect.
+6. **Caddy's `email` directive cannot take an empty argument**, and compose
+   passed `ACME_EMAIL` as an empty string for `PUBLIC_HOST=localhost`. The
+   proxy restart-looped on a parse error while every service behind it merely
+   looked unreachable. Compose now defaults it to an unusable address, which
+   localhost never needs and which Let's Encrypt rejects loudly for a real
+   host. The Caddyfile's own `{$VAR:default}` syntax does not help: it applies
+   to *unset* variables, not empty ones.
+7. **`get_all_devices` filtered on `type=Device`**, so the run DAG found none
+   of open_meteo's `WeatherForecastLocation` devices (nor entsoe's
+   `MarketPriceFeed`), mapped over zero devices, wrote nothing, and reported
+   success. The two gates shipped enabled ingested nothing and nothing said so.
+   The query keys on `dataGate=="<key>"` alone now, which is exact because
+   summaries never carry that attribute. **A silent no-op is the worst failure
+   mode this platform has**, and this class of bug -- a filter that excludes
+   everything -- produces it; `tests/test_core.py` pins the query shape.
+
+`scripts/verify_platform.py` had two of its own, found by pointing it at a real
+deployment: it counted InfluxDB points with `range(start: -90d)` and so saw 2
+of 48 forecast points (a forecast is in the future -- the trap its own
+`docs/data-model.md` warns consumers about), and it probed `type=Device`, so it
+reported zero entities on a healthy deployment and taught the reader to ignore
+warnings.
+
 
 ### The data model and the two stores
 
@@ -239,8 +311,8 @@ by somebody remembering to check.
       `config/gates.yaml`: connectivity, model, bridge, freshness and query
       checks, with `--json` for automation. Done 2026-09-22, run against no
       live stack yet.
-- [ ] `docker compose up -d --build` on a clean machine; fix what breaks; record the fixes in this file.
-- [ ] Run the full weather cycle from §2 "Not yet verified" and paste the summary entity, a Flux result and the `verify_platform.py` output into `README.md` as "verified output".
+- [x] `docker compose up -d --build` on a clean machine; fix what breaks; record the fixes in this file. Done 2026-09-22; the seven fixes are in §3 under "What the first run cost".
+- [x] Run the full weather cycle and paste the summary entity, a Flux result and the `verify_platform.py` output into `README.md` as "verified output". Done 2026-09-22.
 - [x] Create the repository and push `main`. Done 2026-09-22:
       `github.com/sstamatopoulos/datawise-os-integration`, **private** until the
       first run below is verified, topics set, URLs in `pyproject.toml` and

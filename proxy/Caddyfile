@@ -20,6 +20,18 @@
 #      a consumer will try to parse as JSON;
 #   4. HSTS and the hardening headers below, on every hostname.
 {
+	# `email` must never receive an empty argument: that is a Caddyfile parse
+	# error, and Caddy then restart-loops with "wrong argument count or
+	# unexpected line ending after 'email'" while every service behind it
+	# simply looks unreachable.
+	#
+	# The Caddyfile's own default syntax ({$VAR:fallback}) does not save this,
+	# because it applies to an *unset* variable and compose passes ACME_EMAIL
+	# as an empty string. docker-compose.yml therefore defaults it to an
+	# unusable address, which is never used for localhost (certificates come
+	# from Caddy's internal CA) and which Let's Encrypt rejects outright for a
+	# real PUBLIC_HOST - a visible failure at issuance rather than a junk
+	# contact registered quietly. Set ACME_EMAIL for a real domain.
 	email {$ACME_EMAIL}
 }
 
