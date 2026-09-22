@@ -40,6 +40,11 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
     AIRFLOW__API__BASE_URL: https://${PUBLIC_HOST:-localhost}
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    # 30s, not the 300s default: this is how long an edit to config/gates.yaml
+    # takes to become DAGs. Five minutes of "did it work?" per change is how a
+    # configurable platform stops feeling configurable, and it made the first
+    # run of this stack look broken when it was merely slow.
+    AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "${DAG_REFRESH_INTERVAL:-30}"
     AIRFLOW__LOGGING__LOGGING_LEVEL: ${AIRFLOW_LOG_LEVEL:-INFO}
     PYTHONPATH: /opt/airflow:/opt/airflow/plugins
     # the platform - internal addresses, never through the proxy

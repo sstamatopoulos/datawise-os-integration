@@ -236,6 +236,7 @@ plugins/datagates/
 clients/python/              consumer client
 scripts/gen-secrets.sh       creates .env with random secrets
 scripts/verify_platform.py   checks a live deployment: model, bridge, freshness, queries
+scripts/integration_test.sh  runs the weather cycle against a running stack and asserts it (CI runs this)
 scripts/mqtt_spool.py        the always-on subscriber for mqtt gates in spool mode
 tests/                       unit tests, no network
 docker-compose.yml           Caddy (TLS, access control) + Airflow + Orion-LD + MongoDB + InfluxDB

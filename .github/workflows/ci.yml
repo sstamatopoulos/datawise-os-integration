@@ -65,6 +65,41 @@ jobs:
             pytest tests/test_gates_stores.py -q -k sql
           done
 
+  integration:
+    # The stack, for real: build it, start it, ingest weather, and assert what
+    # a consumer would check. This is the job that would have caught the seven
+    # fixes the first manual run cost (ROADMAP.md §3) -- every one of them was
+    # invisible to the unit suite and to the other jobs here.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: generate secrets
+        run: |
+          pip install cryptography          # gen-secrets.sh needs it for the Fernet key
+          ./scripts/gen-secrets.sh
+      - name: build and start the stack
+        run: |
+          docker compose build
+          docker compose up -d
+      - name: integration test
+        run: ./scripts/integration_test.sh
+      - name: what the services said, if it failed
+        if: failure()
+        run: |
+          docker compose ps
+          for service in orion-ld influxdb caddy airflow-scheduler airflow-dag-processor airflow-init; do
+            echo "::group::$service"
+            # Orion-LD prints its Mongo connection string, password included,
+            # whenever it cannot connect (ROADMAP.md §3). Masked, because CI
+            # logs of a public repository are public.
+            docker compose logs --tail 120 "$service" 2>&1 | sed -E 's#mongodb://[^ )]*#mongodb://***MASKED***#g'
+            echo "::endgroup::"
+          done
+      - name: stop the stack
+        if: always()
+        run: docker compose down -v
+
   dags-load:
     # The DAG factory needs Airflow. Every configured gate must build, the
     # disabled examples included: they are the documentation, so they are

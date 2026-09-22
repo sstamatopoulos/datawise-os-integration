@@ -162,6 +162,19 @@ to the unit suite and to CI, which is the whole argument for running the thing.
    mode this platform has**, and this class of bug -- a filter that excludes
    everything -- produces it; `tests/test_core.py` pins the query shape.
 
+`scripts/integration_test.sh` then cost three more, all of them the same
+shape -- a tool that works in the shell and not in the script:
+
+- `python3 - <<'PY'` with the document piped in: the heredoc *is* stdin, so
+  `json.load(sys.stdin)` read the program's own leftovers and the check
+  declared a healthy platform broken. Data goes in a file or an argument.
+- `mktemp -d` on Git Bash returns `/tmp/tmp.XXXX`, an MSYS path that the shell
+  understands and the native `python.exe` and `curl.exe` do not. The file was
+  written and could not be opened. The scratch directory is relative now.
+- `curl -o /dev/null` exits 23 on Windows, and the InfluxDB `--raw` CSV puts
+  `_value` in the middle of the row, not at the end, so "the last field" was
+  the measurement name and every count read as zero.
+
 `scripts/verify_platform.py` had two of its own, found by pointing it at a real
 deployment: it counted InfluxDB points with `range(start: -90d)` and so saw 2
 of 48 forecast points (a forecast is in the future -- the trap its own
@@ -323,13 +336,15 @@ by somebody remembering to check.
       first run below is verified, topics set, URLs in `pyproject.toml` and
       `CITATION.cff` pointed at it. Making it public is one setting; it is
       deliberately not yet done, because the two items above have not been.
-- [ ] `integration` CI job: bring the stack up in Actions, trigger
-      `weather_forecast_init` and `weather_forecast_run`, assert the summary
-      entity carries `lastReadingAt` and that its InfluxDB measurement has
-      points, then run `scripts/verify_platform.py --json` and fail on any
-      failure. **Done when** a broken compose file, a broken factory or a
-      broken bridge fails CI rather than a person. This is the harness every
-      later milestone is tested with, so it is worth more than it costs.
+- [x] `integration` CI job: build and start the stack in Actions, run the
+      weather cycle, assert the summary carries `lastReadingAt` and points at
+      its own InfluxDB measurement, count the points, run
+      `verify_platform.py`, and probe the proxy's API-key gate from outside.
+      Done 2026-09-22 as `scripts/integration_test.sh` plus the `integration`
+      job; the script runs the same way on a laptop after
+      `docker compose up -d`. Writing it found three more Windows-portability
+      bugs (see §3), which is fitting for a harness whose job is to find what
+      unit tests cannot.
 - [ ] Work through the rest of `docs/publishing-checklist.md`: branch protection with the four CI jobs required, private vulnerability reporting, Dependabot alerts, and the `SECURITY.md` / `CITATION.cff` gaps (maintainers, authors, funding).
 - [x] Confirm CI is green on `main`. Done 2026-09-22: all five jobs
       (`lint-and-test` 3.12 and 3.13, `packaging`, `gate-extras`, `dags-load`).

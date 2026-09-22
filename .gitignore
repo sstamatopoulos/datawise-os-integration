@@ -10,3 +10,6 @@ __pycache__/
 *.key
 config/airflow.cfg
 config/gates.local.yaml
+
+# scratch directory of scripts/integration_test.sh
+.integration.*/
