@@ -76,6 +76,18 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
   `scripts/verify_platform.py` reports 0 failures and 0 warnings. The output
   is in `README.md` under "Verified output". It took the seven fixes listed
   below, none of which 137 unit tests or five CI jobs could have found.
+- **All three gates the shipped config enables**, same day: `weather_forecast`
+  (48 forecast points), `weather_observed` (1249 backfilled ERA5 points per
+  property) and `prices` (193 Nord Pool day-ahead points at the 15-minute
+  market time unit), each with `verify_platform.py` reporting no failures and
+  no warnings. That covers the rolling, revised-history and stateless-backfill
+  shapes, and two entity types beyond `Device`.
+- **The proxy, from outside the stack**, same day: Airflow over TLS through
+  Caddy answers 200; the broker answers 401 with an NGSI-LD `ProblemDetails`
+  body without `X-API-Key` and 200 with it, returning the summary entity. Only
+  Caddy's internal CA was exercised -- ACME has never run here, because this
+  machine already had something on 80/443 and the stack was brought up on
+  `HTTP_PORT`/`HTTPS_PORT` instead.
 
 ### Not yet verified — do these first
 
@@ -84,16 +96,9 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
    payloads with the transport mocked at one method. Expect the first real
    Modbus, BACnet, S7, oBIX or SOAP endpoint to need a fix; that is what the
    one-method seam is for. Prioritise by what the pilots actually have.
-2. **The proxy, from outside.** Caddy starts and parses its configuration, but
-   nothing has yet fetched a page through it: TLS with its internal CA, the
-   `X-API-Key` gate on the broker, and the Airflow UI behind it are all
-   untested. On the machine where this first ran, ports 80/443 were already
-   taken by another project, so it was brought up on HTTP_PORT/HTTPS_PORT
-   instead -- which also means Let's Encrypt has never been exercised.
-3. **`prices` (Nord Pool) and everything credentialed.** Only the two weather
-   gates have run. Nord Pool needs no key and should be next; it is one
-   `airflow dags trigger` away.
-4. **The counter guard, the status path and the cursor backfill.** The weather
+2. **Everything credentialed.** All three credential-free gates have run; no
+   gate needing a token, a password or a network route to a device has.
+3. **The counter guard, the status path and the cursor backfill.** The weather
    gates have no cumulative properties, implement no `status()`, and use the
    stateless backfill, so three paths that matter to meters are still only
    unit-tested: the guard rejecting an impossible reading, `refresh_status`
@@ -312,7 +317,7 @@ by somebody remembering to check.
       checks, with `--json` for automation. Done 2026-09-22, run against no
       live stack yet.
 - [x] `docker compose up -d --build` on a clean machine; fix what breaks; record the fixes in this file. Done 2026-09-22; the seven fixes are in §3 under "What the first run cost".
-- [x] Run the full weather cycle and paste the summary entity, a Flux result and the `verify_platform.py` output into `README.md` as "verified output". Done 2026-09-22.
+- [x] Run the full weather cycle and paste the summary entity, a Flux result and the `verify_platform.py` output into `README.md` as "verified output". Done 2026-09-22, and the `prices` gate and the proxy with it.
 - [x] Create the repository and push `main`. Done 2026-09-22:
       `github.com/sstamatopoulos/datawise-os-integration`, **private** until the
       first run below is verified, topics set, URLs in `pyproject.toml` and
