@@ -211,8 +211,27 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
 
 ## 4. Roadmap
 
-Ordered. Each item is small enough for one session; finish it end to end
-(code, test, docs, CI green) before starting the next.
+Ordered by what unblocks what, not by size. Each item is small enough for one
+session.
+
+### How to work through it
+
+One item at a time. An item is done when all five are true:
+
+1. `ruff check .` and `pytest` are green;
+2. **it has a test that would fail if the change were reverted** — a unit test
+   on a recorded payload, or an assertion in the `integration` job. "It ran on
+   my machine once" is not a test and does not survive the next refactor;
+3. every document that mentions it is updated (`docs/gates.md`,
+   `docs/legacy-systems.md`, `README.md`, `CHANGELOG.md`);
+4. CI is green on `main`;
+5. the box is ticked here, with the date, and anything surprising is written
+   into §2 or §3. The next person reads this file, not the diff.
+
+Two items carry the rest: **M1's first run**, because everything below it is
+theory until the stack has started once, and **M1's `integration` job**,
+because it is what lets every later item be verified by a machine instead of
+by somebody remembering to check.
 
 ### M1 — First run (do before publishing)
 
@@ -227,6 +246,13 @@ Ordered. Each item is small enough for one session; finish it end to end
       first run below is verified, topics set, URLs in `pyproject.toml` and
       `CITATION.cff` pointed at it. Making it public is one setting; it is
       deliberately not yet done, because the two items above have not been.
+- [ ] `integration` CI job: bring the stack up in Actions, trigger
+      `weather_forecast_init` and `weather_forecast_run`, assert the summary
+      entity carries `lastReadingAt` and that its InfluxDB measurement has
+      points, then run `scripts/verify_platform.py --json` and fail on any
+      failure. **Done when** a broken compose file, a broken factory or a
+      broken bridge fails CI rather than a person. This is the harness every
+      later milestone is tested with, so it is worth more than it costs.
 - [ ] Work through the rest of `docs/publishing-checklist.md`: branch protection with the four CI jobs required, private vulnerability reporting, Dependabot alerts, and the `SECURITY.md` / `CITATION.cff` gaps (maintainers, authors, funding).
 - [x] Confirm CI is green on `main`. Done 2026-09-22: all five jobs
       (`lint-and-test` 3.12 and 3.13, `packaging`, `gate-extras`, `dags-load`).
@@ -258,7 +284,7 @@ Ordered. Each item is small enough for one session; finish it end to end
 - [ ] Port the production data-access guide (query recipes, 8 example scripts, benchmark) into `docs/consumer-guide.md` and `clients/python/examples/`, generalised: no pilot names, sources taken from `gates.yaml`.
 - [ ] Pagination in `datagates_client.py` (Orion caps `limit` at 1000).
 - [ ] A Grafana provisioning folder (InfluxDB datasource + one dashboard per gate type) as an optional compose profile.
-- [ ] A `datagates` CLI (`python -m datagates list|check <key>|fetch <key> --dry-run`) so a gate can be tried without Airflow. The pieces exist; it is the missing step in the playbook in `docs/legacy-systems.md`.
+- [ ] A `datagates` CLI (`python -m datagates list|check <key>|fetch <key> --dry-run`) so a gate can be tried without Airflow. **Do this early**: it turns a twenty-minute Airflow round trip into a two-second loop, which changes how fast every remaining item can be worked on, and it makes the playbook in `docs/legacy-systems.md` executable instead of aspirational. **Tested by** unit tests on the argument parsing plus one `integration` assertion that `check` exits non-zero for a gate whose upstream is unreachable.
 
 ### M5 — Security and packaging
 
@@ -281,6 +307,84 @@ site needs it, and write the payload into a test.
 - [ ] `dlms` / COSEM against a head-end, if any partner grants access.
 - [ ] `lonworks`, `enocean`, `sigfox` — by demand only.
 - [ ] Inbound SFTP drop service in compose (chrooted, key-only) for partners who insist on pushing.
+
+### M7 — Ecosystem (proposed)
+
+Turning a repository that has gates into a place where other people's gates
+can live. Nothing here is needed by this deployment; all of it is needed by
+the second and third deployment.
+
+- [ ] **Entry-point discovery**: a `datagates.gates` entry-point group, so
+      `pip install datagates-knx` makes `type: knx` resolvable while
+      `module:Class` keeps working. This is the change that separates "a repo
+      with gates" from "an ecosystem of gates": today a third-party gate is a
+      path in someone's YAML, which nobody discovers, versions or trusts.
+      **Tested by** a fixture wheel built in `tests/` whose gate appears in
+      the catalogue and builds its DAGs.
+- [ ] **`datagates.testing`**: export `doc_of` and an
+      `assert_gate_contract(gate)` that checks what the built-ins are held to
+      — discover() returns devices, every property has a unit, fetch()
+      respects its window, no driver imported at module level. **Done when**
+      the built-in suite uses it too, so it cannot rot, and an out-of-tree
+      gate can import it.
+- [ ] **PyPI and GHCR**: `pip install datagates` and a published image, so
+      trying this does not start with a five-minute build. **Tested by** a
+      release workflow that installs the artefact it just published into a
+      clean container and resolves every built-in type.
+- [ ] **`.devcontainer/` and a three-minute quickstart**: the credential-free
+      weather and price gates, running in a Codespace with nothing installed
+      locally. **Done when** somebody who has never seen FIWARE sees data.
+- [ ] **`docs/tested-against.md`**: gate x product x firmware x who verified
+      it and when. **Done when** every gate has a row, "not yet" included —
+      the honesty is the point, and it turns every issue somebody opens into
+      a durable entry instead of a closed thread.
+
+### M8 — Model depth (proposed)
+
+- [ ] **Building topology** (Brick or RealEstateCore): today there is a flat
+      list of Devices with an optional `refBuilding`. A consumer cannot ask
+      "every temperature on the second floor" without a naming convention,
+      which is the thing naming conventions are worst at. **Tested by** a
+      fixture building in the `integration` job and a query in the consumer
+      guide.
+- [ ] **SAREF4BLDG / SAREF4ENER mapping**: a documented mapping from this
+      model, and an optional export. European projects increasingly require
+      SAREF alignment, and this is a contribution the research community can
+      use rather than plumbing only we need.
+- [ ] **Unit conversion helpers**: the UN/CEFACT codes are already a de facto
+      vocabulary here; a small converter (Wh<->kWh, degC<->K, m3<->l) would stop
+      every consumer writing their own, wrongly, in a notebook.
+
+### M9 — Scale and cost (proposed)
+
+- [ ] **Downsampling and per-gate retention** in InfluxDB. Raw data at five
+      years is a default nobody chose; a five-minute series for a decade is a
+      bill somebody eventually does choose to stop paying.
+- [ ] **An Airflow pool per upstream**, so one slow API cannot starve the
+      scheduler for everything else. The gates already declare
+      `min_interval_s`; the pool is the other half.
+- [ ] **A published benchmark**: devices, points per day, per worker, measured
+      by the `integration` job against a synthetic gate. People ask this
+      before adopting, and "it depends" loses to a number.
+
+### M10 — Edge (proposed)
+
+- [ ] **A slim runner for sites with no reliable link**: run the gates
+      locally, spool, ship when the link returns. It generalises
+      `scripts/mqtt_spool.py`, and it is the difference between a pilot
+      building with a domestic broadband line being in the dataset or not.
+      **Done when** a site can lose connectivity for a day and lose nothing.
+
+### Non-goals (reopen only with a reason written down)
+
+- **Writing to upstream systems.** "Gates only read" is why the owner of a
+  control network says yes, and it is the first thing they ask. If setpoint
+  control is ever wanted it needs its own mechanism, its own authorisation
+  story and its own entry in §3 — not a quiet `write()` on the Gate contract.
+- **Being a dashboard.** Grafana provisioning (M4) is a convenience; the
+  platform's job ends at two well-documented stores.
+- **Supporting every protocol speculatively.** M6 exists so that a gate is
+  written when a site needs it, with that site's payload in a test.
 
 ## 5. Conventions for whoever continues
 
