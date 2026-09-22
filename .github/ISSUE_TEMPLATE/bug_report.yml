@@ -1,0 +1,60 @@
+name: Bug report
+description: Something does not work — a gate, a DAG, the stack
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove secrets from everything you paste: tokens, passwords,
+        hostnames and meter serials. If this looks like a vulnerability, follow
+        SECURITY.md instead of filing an issue.
+  - type: input
+    id: gate-type
+    attributes:
+      label: Gate type
+      description: The `type:` from gates.yaml, or "framework" / "stack" if it is not one gate.
+      placeholder: modbus
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: The gates.yaml entry
+      description: With secrets replaced by ${VAR} or removed.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what you expected instead
+      description: >
+        If values arrived but look wrong, say what the upstream shows and what
+        landed in InfluxDB. Wrong-by-a-factor and wrong-by-an-hour are usually
+        `scale`/`word_order` and `timezone`; wrong-by-nonsense is usually a
+        decoding problem.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Task log
+      description: The relevant part of the failing task's log.
+      render: text
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      value: |
+        - deployment: docker compose / own Airflow / other
+        - Airflow version:
+        - Python version:
+        - upstream product and firmware/version:
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: Output of scripts/verify_platform.py
+      description: Optional, but it answers half the questions we would ask next.
+      render: text

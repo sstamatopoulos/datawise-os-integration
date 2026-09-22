@@ -1,0 +1,40 @@
+# Optional dependencies of the built-in gates.
+#
+#   pip install -r requirements-gates.txt
+#
+# Nothing here is needed to run the platform, and a missing package costs
+# you one gate type rather than the whole DAG bag: every driver is imported
+# inside the method that uses it, and tests/test_registry.py enforces that.
+# The Dockerfile installs this file by default (INSTALL_GATE_EXTRAS=1).
+#
+# Which gate needs what, and what else it needs from the host:
+
+# -- field protocols ---------------------------------------------------
+pymodbus>=3.6,<4          # modbus
+BAC0>=23.7                # bacnet — also needs host or macvlan networking for
+                          #          BACnet broadcasts; a bridged container
+                          #          cannot receive them (see docs/gates.md)
+asyncua>=1.1              # opcua
+pysnmp>=4.4,<6            # snmp — the gate uses the synchronous hlapi. pysnmp 6
+                          #        reorganised it into v1arch/v3arch, so either
+                          #        stay below 6 or adapt SnmpGate._get, which is
+                          #        the one method that touches the library.
+# python-snap7>=2.0       # s7 — needs the native snap7 shared library as well
+                          #      (apt: libsnap7-1, or build from sourceforge),
+                          #      so it is commented out: uncomment it in a
+                          #      deployment that has installed the library.
+
+# -- files and transports ----------------------------------------------
+openpyxl>=3.1             # excel_drop (.xlsx only; .xls is not supported)
+paramiko>=3.4             # remote_drop with protocol: sftp
+                          # (ftp and ftps use the standard library)
+
+# -- messaging ---------------------------------------------------------
+paho-mqtt>=2.1            # mqtt, and scripts/mqtt_spool.py
+
+# -- databases ---------------------------------------------------------
+SQLAlchemy>=2.0           # sql — plus the driver of your database:
+# pyodbc>=5.1             #   SQL Server (also needs the Microsoft ODBC driver)
+# psycopg[binary]>=3.1    #   PostgreSQL
+# oracledb>=2.2           #   Oracle (thin mode: no client libraries needed)
+# PyMySQL>=1.1            #   MySQL / MariaDB

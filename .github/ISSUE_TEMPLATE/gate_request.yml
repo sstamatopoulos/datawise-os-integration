@@ -1,0 +1,64 @@
+name: New gate type
+description: A system this platform cannot read yet
+labels: [gate-request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        First, please check that none of the existing types fits — `http_json`,
+        `http_xml` (SOAP), `http_csv`, `sql` and the drop gates cover a lot
+        between them. `docs/legacy-systems.md` maps products to gates.
+  - type: input
+    id: system
+    attributes:
+      label: The system
+      description: Product, vendor and version. Be specific; "a BMS" is a different job per vendor.
+      placeholder: Delta Controls enteliWEB 4.x
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: How can it be read?
+      multiple: true
+      options:
+        - REST / JSON API
+        - SOAP or XML over HTTP
+        - CSV or Excel export
+        - a database we can query
+        - a field protocol (Modbus, BACnet, other)
+        - MQTT or another broker
+        - only through the vendor's cloud
+        - do not know yet
+    validations:
+      required: true
+  - type: textarea
+    id: payload
+    attributes:
+      label: A recorded answer
+      description: >
+        The most useful thing you can attach: one real response or file, with
+        the identifiers replaced by invented ones. A gate is usually written
+        from a payload in an hour, and from a description in a week.
+      render: text
+  - type: textarea
+    id: docs
+    attributes:
+      label: Documentation
+      description: Links, or the name of the manual and the section. Vendor PDFs behind a login are worth saying so.
+  - type: textarea
+    id: quirks
+    attributes:
+      label: What the upstream does that its documentation does not say
+      description: >
+        Rate limits, an empty answer that is an error code, a capped page size,
+        a timestamp in local time, a value that is a tenth of the real one.
+        These are the reason a gate is short, so they are worth writing here.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - label: I can test against a real installation
+        - label: I can share a recorded payload
+        - label: I would like to write the gate myself (docs/adding-a-gate.md)

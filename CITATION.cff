@@ -1,0 +1,33 @@
+# Citation metadata, read by GitHub ("Cite this repository") and by Zenodo.
+#
+# TODO before the first tagged release (see docs/publishing-checklist.md):
+#   * list the individual authors, with ORCIDs where they have them, instead of
+#     only the consortium;
+#   * fill in the funding programme and grant number the project reports under;
+#   * add the DOI that Zenodo mints for the first release, and the real
+#     repository URL.
+cff-version: 1.2.0
+title: "datawise-os-integration: configurable data gates for building and energy telemetry"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - name: "DATAWiSE project consortium"
+abstract: >-
+  Apache Airflow pipelines that land telemetry from building and energy systems,
+  including legacy field protocols, historians and file exports, in a FIWARE
+  Orion-LD context broker and InfluxDB, following the FIWARE Smart Data Models.
+  A source is configured in YAML; twenty-four gate types are built in.
+keywords:
+  - FIWARE
+  - NGSI-LD
+  - InfluxDB
+  - Apache Airflow
+  - smart buildings
+  - energy data
+  - BACnet
+  - Modbus
+  - OPC UA
+  - data integration
+license: Apache-2.0
+version: 0.2.0
+repository-code: "https://github.com/datawise-project/datawise-os-integration"

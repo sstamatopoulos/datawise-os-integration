@@ -1,0 +1,439 @@
+# Which gates run, with what options. Each entry becomes <key>_init,
+# <key>_run and (unless the source has no past) <key>_backfill.
+#
+# Secrets go in .env and are referenced here as ${VAR} or ${VAR:-default}.
+# docs/gates.md documents every option of every built-in type,
+# docs/legacy-systems.md maps "I have system X" to a gate, and
+# docs/adding-a-gate.md covers writing your own.
+#
+# The three enabled gates need no credentials, so a fresh stack ingests
+# real data within minutes: trigger weather_forecast_init, then unpause
+# weather_forecast_run. Everything below them is a worked example of a
+# gate type, disabled; copy one, point it at your system, enable it.
+
+gates:
+
+  # ══ enabled: no credentials needed ═══════════════════════════════════
+
+  - key: weather_forecast
+    type: open_meteo
+    enabled: true
+    data_provider: open-meteo
+    source: open-meteo.forecast
+    options:
+      mode: forecast
+      forecast_hours: 48
+      locations:
+        - {id: riga, name: Riga, lat: 56.9496, lon: 24.1052}
+
+  - key: weather_observed
+    type: open_meteo
+    enabled: true
+    data_provider: open-meteo
+    source: open-meteo.archive
+    history_start: "2024-01-01"
+    options:
+      mode: observed
+      locations:
+        - {id: riga, name: Riga, lat: 56.9496, lon: 24.1052}
+
+  - key: prices
+    type: nordpool
+    enabled: true
+    data_provider: nordpool
+    source: nordpoolgroup.com
+    options:
+      areas: [LV]
+      currency: EUR
+
+  # ══ field protocols: what the plant room speaks ══════════════════════
+  # These have no history: the schedule is the sampling rate, and no
+  # backfill DAG is built. See docs/gates.md#three-kinds-of-gate.
+
+  # Modbus/TCP: PLCs, energy meters, inverters, serial gateways.
+  - key: plant_modbus
+    type: modbus
+    enabled: false
+    schedule: "*/5 * * * *"
+    options:
+      devices:
+        - id: ahu1
+          name: AHU 1 supply
+          host: 10.0.20.11
+          port: 502
+          unit: 1
+          base: 40001                      # the register numbering the manual uses
+          fields:
+            "40001": {property: temperature, unit: CEL, type: int16, scale: 0.1}
+            "40010": {property: energy, unit: KWH, type: uint32, word_order: little, cumulative: true}
+            "40020.3": {property: alarmState, unit: C62}
+
+  # BACnet/IP: the building management system.
+  - key: bms
+    type: bacnet
+    enabled: false
+    schedule: "*/10 * * * *"
+    options:
+      bind: 10.0.20.5/24
+      devices:
+        - id: ahu1
+          name: AHU 1
+          address: 10.0.20.41
+          fields:
+            "analogInput:1":  {property: temperature, unit: CEL}
+            "analogValue:12": {property: temperatureSetpoint, unit: CEL}
+            "analogInput:7":  {property: co2, unit: "59", invalid: [-9999]}
+
+  # OPC UA: modern PLCs, SCADA, and OPC Classic behind a wrapper.
+  # history: true turns this into a windowed gate with a backfill.
+  - key: scada
+    type: opcua
+    enabled: false
+    options:
+      endpoint: "opc.tcp://10.0.30.9:4840"
+      history: false
+      devices:
+        - id: chiller1
+          name: Chiller 1
+          fields:
+            "ns=2;i=1002": {property: temperature, unit: CEL}
+            "ns=2;s=Chiller1.Power": {property: power, unit: KWT}
+
+  # Siemens S7: substations, pump stations, older HVAC plant.
+  - key: substation
+    type: s7
+    enabled: false
+    options:
+      devices:
+        - id: hs1
+          name: Heat substation 1
+          host: 10.0.40.12
+          rack: 0
+          slot: 1
+          fields:
+            supplyT:   {property: temperature, unit: CEL, db: 10, start: 0, type: float32}
+            heatTotal: {property: energy, unit: KWH, db: 10, start: 8, type: uint32, cumulative: true}
+
+  # SNMP: UPS, PDUs, generators, network-attached meters.
+  - key: ups
+    type: snmp
+    enabled: false
+    options:
+      version: 2c
+      community: ${SNMP_COMMUNITY:-public}
+      devices:
+        - id: ups-main
+          name: UPS main switchboard
+          host: 10.0.10.7
+          fields:
+            "1.3.6.1.2.1.33.1.2.4.0": {property: batteryLevel, unit: P1, scale: 0.01}
+            "1.3.6.1.2.1.33.1.4.4.1.4.1": {property: power, unit: WTT}
+
+  # ══ files somebody exports every night ══════════════════════════════
+
+  # A partner drops CSV files into ./drop/gas (or an SFTP chroot mounted there).
+  - key: gas
+    type: csv_drop
+    enabled: false
+    options:
+      delimiter: ";"
+      timestamp_column: Timestamp
+      timestamp_format: "%Y-%m-%d %H:%M:%S"
+      timezone: Europe/Riga
+      device_column: MeterId
+      columns:
+        Consumption: {property: gasConsumption, unit: MTQ}
+        Index:       {property: gasIndex,       unit: MTQ, cumulative: true}
+      devices:
+        - {id: J00025571, name: Gas meter J00025571}
+
+  # The monthly workbook from an energy manager or a utility.
+  - key: invoices
+    type: excel_drop
+    enabled: false
+    schedule: "0 6 * * *"
+    options:
+      pattern: "*.xlsx"
+      sheet: 0
+      header_row: 1
+      timestamp_column: Month
+      timestamp_format: "%Y-%m"
+      timezone: Europe/Riga
+      device_column: Meter
+      forward_fill: [Meter]
+      columns:
+        kWh: {property: energyConsumption, unit: KWH}
+        m3:  {property: waterConsumption, unit: MTQ}
+      devices:
+        - {id: J0025571, name: Gymnasium water meter}
+
+  # Regulated meter exports: MSCONS-style XML, head-end system dumps.
+  - key: meter_exports
+    type: xml_drop
+    enabled: false
+    options:
+      pattern: "*.xml"
+      row_path: ".//MeterReading"
+      device_selector: "@meterId"
+      timestamp_selector: "ReadingTime"
+      timezone: Europe/Riga
+      columns:
+        "Value/@kWh": {property: energyConsumption, unit: KWH, cumulative: true}
+      devices:
+        - {id: J0025571, name: Gymnasium electricity meter}
+
+  # The partner's FTP server that has been there since 2011.
+  - key: district_heating
+    type: remote_drop
+    enabled: false
+    schedule: "0 5 * * *"
+    options:
+      protocol: sftp
+      host: files.partner.example
+      port: 22
+      username: ${DH_USER}
+      password: ${DH_PASSWORD}
+      remote_dir: /exports/heat
+      format: csv
+      pattern: "*.csv"
+      delimiter: ";"
+      timestamp_column: Timestamp
+      timestamp_format: "%Y-%m-%d %H:%M"
+      timezone: Europe/Riga
+      device_column: MeterId
+      columns:
+        Energy: {property: energy, unit: KWH, cumulative: true}
+        Flow:   {property: flow, unit: MQH}
+      devices:
+        - {id: "5432", name: Heat meter 5432}
+
+  # ══ web APIs, old and new ════════════════════════════════════════════
+
+  # Any REST API described in YAML: here one answering parallel arrays.
+  - key: indoor_air
+    type: http_json
+    enabled: false
+    source: mesh.example
+    options:
+      url: "https://api.example.org/device/{device_id}/sensor-data"
+      params: {fromDate: "{start_date}", toDate: "{end_date}"}
+      auth: {type: bearer, token: "${MESH_API_KEY}"}
+      layout: columns
+      time_field: timestamp
+      time_format: iso
+      fields:
+        co2:         {property: co2,         unit: "59"}
+        temperature: {property: temperature, unit: CEL}
+        humidity:    {property: humidity,    unit: P1}
+      devices:
+        - {id: 25667, name: Room 120B}
+
+  # SOAP, or any XML over HTTP.
+  - key: billing_ws
+    type: http_xml
+    enabled: false
+    options:
+      url: "https://ws.example.org/readings"
+      method: POST
+      soap_action: "urn:GetMeterReadings"
+      body: |
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+          <soapenv:Body>
+            <GetMeterReadings>
+              <meterId>{device_id}</meterId>
+              <from>{start_iso}</from>
+              <to>{end_iso}</to>
+            </GetMeterReadings>
+          </soapenv:Body>
+        </soapenv:Envelope>
+      auth: {type: basic, username: "${WS_USER}", password: "${WS_PASSWORD}"}
+      row_path: ".//MeterReading"
+      timestamp_selector: "@time"
+      fields:
+        Value: {property: energyConsumption, unit: KWH}
+      devices:
+        - {id: "5432", name: Heat meter 5432}
+
+  # "Download the report" endpoints of portals and report servers.
+  - key: heat_portal
+    type: http_csv
+    enabled: false
+    options:
+      url: "https://portal.example.org/export"
+      params: {meter: "{device_id}", from: "{start_date}", to: "{end_date}", format: csv}
+      auth: {type: basic, username: "${PORTAL_USER}", password: "${PORTAL_PASSWORD}"}
+      delimiter: ";"
+      encoding: cp1257
+      skip_rows: 0
+      timestamp_column: Time
+      timestamp_format: "%d.%m.%Y %H:%M"
+      timezone: Europe/Riga
+      columns:
+        "kWh": {property: energyConsumption, unit: KWH}
+      devices:
+        - {id: "5432", name: Heat meter 5432}
+
+  # Tridium Niagara (JACE) and other oBIX servers, with their histories.
+  - key: jace
+    type: obix
+    enabled: false
+    options:
+      base_url: "https://jace.example.org/obix"
+      history: true
+      auth: {type: basic, username: "${OBIX_USER}", password: "${OBIX_PASSWORD}"}
+      timezone: Europe/Riga
+      devices:
+        - id: ahu1
+          name: AHU 1
+          fields:
+            "S1/AHU1_SupplyTemp": {property: temperature, unit: CEL}
+            "S1/AHU1_Power":      {property: power, unit: KWT}
+
+  # Items the facility's Zabbix server already collects.
+  - key: facility
+    type: zabbix
+    enabled: false
+    options:
+      url: "https://zabbix.example.org/api_jsonrpc.php"
+      token: ${ZABBIX_TOKEN}
+      devices:
+        - id: crac1
+          name: CRAC unit 1
+          fields:
+            "23451": {property: temperature, unit: CEL}
+            "23452": {property: relativeHumidity, unit: P1, scale: 0.01}
+
+  - key: meters
+    type: thingsboard
+    enabled: false
+    options:
+      base_url: https://thingsboard.example.org/api
+      username: ${TB_USERNAME}
+      password: ${TB_PASSWORD}
+      devices:
+        - id: school-main
+          name: School - main electricity meter
+          tb_device_id: 00000000-0000-0000-0000-000000000000
+          keys:
+            energy: {key: Qel1__A, unit: KWH, cumulative: true}
+            power:  {key: Pel1__A, unit: KWT}
+
+  # MQTT drained on a schedule through a persistent broker session.
+  - key: lora
+    type: mqtt
+    enabled: false
+    schedule: "*/10 * * * *"
+    options:
+      host: mqtt.example.org
+      port: 1883
+      username: ${MQTT_USER}
+      password: ${MQTT_PASSWORD}
+      client_id: datagates-lora
+      collect_seconds: 30
+      devices:
+        - id: room120
+          name: Room 120B sensor
+          topic: "application/1/device/room120/event/up"
+          time_field: time
+          fields:
+            "object.co2":         {property: co2, unit: "59"}
+            "object.temperature": {property: temperature, unit: CEL}
+
+  # ══ other stores to read from ════════════════════════════════════════
+
+  # A historian, a billing database, a legacy application's own tables.
+  - key: historian
+    type: sql
+    enabled: false
+    options:
+      dsn: "mssql+pyodbc://${DB_USER}:${DB_PASSWORD}@sqlsrv.example.org/Historian?driver=ODBC+Driver+18+for+SQL+Server"
+      layout: long
+      query: |
+        SELECT TagName, DateTime AS ts, Value
+        FROM   History
+        WHERE  TagName = :device_id AND DateTime > :start AND DateTime <= :end
+        ORDER  BY DateTime
+      timestamp_column: ts
+      property_column: TagName
+      value_column: Value
+      timezone: Europe/Riga
+      columns:
+        "AHU1.SupplyTemp": {property: temperature, unit: CEL}
+      devices:
+        - {id: "AHU1.SupplyTemp", name: AHU 1 supply temperature}
+
+  # An InfluxDB somebody else has been filling since 2019.
+  - key: legacy_influx
+    type: influx_source
+    enabled: false
+    options:
+      url: "http://10.0.60.4:8086"
+      version: 1
+      database: building
+      username: ${LEGACY_INFLUX_USER}
+      password: ${LEGACY_INFLUX_PASSWORD}
+      devices:
+        - id: ahu1
+          name: AHU 1
+          measurement: hvac
+          tags: {device: ahu1}
+          fields:
+            temp_supply: {property: temperature, unit: CEL}
+            kwh_total:   {property: energy, unit: KWH, cumulative: true}
+
+  # Prometheus: short retention there, long retention here.
+  - key: dc_power
+    type: prometheus
+    enabled: false
+    options:
+      url: "http://prometheus.example.org:9090"
+      step: 60s
+      devices:
+        - id: rack_a
+          name: Rack A
+          fields:
+            'sum(pdu_power_watts{rack="A"})': {property: power, unit: WTT}
+
+  # Another NGSI-LD broker, mirrored through its temporal API.
+  - key: city_broker
+    type: ngsi_ld
+    enabled: false
+    options:
+      url: "https://broker.city.example.org"
+      auth: {type: header, name: X-API-Key, value: "${CITY_BROKER_KEY}"}
+      devices:
+        - id: "urn:ngsi-ld:AirQualityObserved:Station-7"
+          name: City air quality station 7
+          fields:
+            co2:         {property: co2, unit: "59"}
+            temperature: {property: temperature, unit: CEL}
+
+  # FIWARE as it was: Orion v2 with QuantumLeap or STH-Comet behind it.
+  - key: legacy_fiware
+    type: ngsi_v2
+    enabled: false
+    options:
+      url: "http://orion-v2.example.org:1026"
+      history: quantumleap
+      history_url: "http://quantumleap.example.org:8668"
+      service: smartcity
+      service_path: "/buildings"
+      devices:
+        - id: "Sensor:001"
+          name: Room 120B sensor
+          entity_type: AirQualityObserved
+          fields:
+            co2:         {property: co2, unit: "59"}
+            temperature: {property: temperature, unit: CEL}
+
+  # ══ markets ══════════════════════════════════════════════════════════
+
+  # ENTSO-E Transparency Platform: free with a registered token.
+  - key: market
+    type: entsoe
+    enabled: false
+    options:
+      token: ${ENTSOE_TOKEN}
+      document_type: A44
+      areas:
+        - {id: LV, name: Latvia, eic: "10YLV-1001A00074"}

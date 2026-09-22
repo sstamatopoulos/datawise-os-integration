@@ -1,0 +1,10 @@
+-r requirements.txt
+pytest
+ruff
+
+# Optional gate dependencies that are pure Python, so CI exercises the
+# gates that use them (Excel workbooks, SQL through SQLAlchemy, MQTT).
+# The rest of requirements-gates.txt needs native libraries or a device.
+openpyxl
+SQLAlchemy
+paho-mqtt

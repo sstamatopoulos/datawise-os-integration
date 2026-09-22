@@ -1,0 +1,96 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "${{ matrix.python-version }}"}
+      # Deliberately without requirements-gates.txt: the gates must import
+      # and build with no field-protocol driver installed, which is what
+      # keeps one unused gate type from breaking the whole DAG bag.
+      # tests/test_registry.py asserts it.
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest
+
+  packaging:
+    # `pip install .` has to work: gates are developed outside this tree
+    # against the datagates package (see docs/adding-a-gate.md).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install .
+      - name: every built-in type resolves from the installed package
+        run: |
+          python - <<'PY'
+          from datagates.gates.registry import BUILTIN_TYPES, resolve_type
+          for name in BUILTIN_TYPES:
+              resolve_type(name)
+          print(len(BUILTIN_TYPES), "gate types importable from the installed package")
+          assert len(BUILTIN_TYPES) >= 20
+          PY
+
+  gate-extras:
+    # Every optional driver must install and import next to the platform's own
+    # dependencies, or a deployment that enables that gate cannot build.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements.txt -r requirements-gates.txt
+      - name: the drivers import
+        run: |
+          python - <<'PY'
+          import asyncua, BAC0, openpyxl, paho.mqtt, paramiko, pymodbus, pysnmp, sqlalchemy
+          print("gate drivers ok")
+          PY
+
+  dags-load:
+    # The DAG factory needs Airflow. Every configured gate must build, the
+    # disabled examples included: they are the documentation, so they are
+    # kept working.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/plugins
+      DATAGATES_CONFIG: ${{ github.workspace }}/config/gates.yaml
+      TB_USERNAME: u
+      TB_PASSWORD: p
+      MESH_API_KEY: k
+      ENTSOE_TOKEN: t
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: |
+          pip install "apache-airflow==3.0.6" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.0.6/constraints-3.12.txt"
+          pip install -r requirements.txt
+      - name: the DAG bag of the enabled gates
+        run: |
+          python - <<'PY'
+          from airflow.models import DAG
+          import dags.datagates_dags as bag
+          ids = sorted(k for k, v in vars(bag).items() if isinstance(v, DAG))
+          print("\n".join(ids))
+          assert ids, "no DAGs built"
+          PY
+      - name: the DAGs of every gate in the catalogue, enabled or not
+        run: |
+          python - <<'PY'
+          from datagates.dags.factory import build_dags
+          from datagates.gates.registry import load_gates
+          total = 0
+          for gate in load_gates(include_disabled=True):
+              built = build_dags(gate)
+              total += len(built)
+              print("%-18s %-14s %s" % (gate.key, gate.type_name, " ".join(sorted(built))))
+          print(total, "DAGs built from the shipped catalogue")
+          PY

@@ -1,0 +1,14 @@
+# Developer override: publish the backends on the loopback interface, no TLS,
+# so curl and local tools can reach them directly.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# The broker is then reachable without an API key from this machine. Never
+# use this file on a server.
+services:
+  orion-ld:
+    ports: ["127.0.0.1:1026:1026"]
+  influxdb:
+    ports: ["127.0.0.1:8086:8086"]
+  airflow-apiserver:
+    ports: ["127.0.0.1:8080:8080"]

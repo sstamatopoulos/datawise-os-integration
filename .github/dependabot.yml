@@ -1,0 +1,20 @@
+# Dependency updates. Grouped and monthly: this repository pins a full Airflow
+# constraint set, so a flood of single-package pull requests is noise.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule: {interval: monthly}
+    open-pull-requests-limit: 5
+    groups:
+      gate-drivers:
+        patterns: ["pymodbus", "BAC0", "asyncua", "pysnmp", "python-snap7", "openpyxl",
+                   "paramiko", "paho-mqtt", "SQLAlchemy"]
+      platform:
+        patterns: ["influxdb-client", "requests", "tenacity", "PyYAML", "pytest", "ruff"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: {interval: monthly}
+  - package-ecosystem: docker
+    directory: "/"
+    schedule: {interval: monthly}

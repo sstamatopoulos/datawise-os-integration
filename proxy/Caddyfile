@@ -1,0 +1,45 @@
+# Reverse proxy and access control for the whole stack.
+#
+# PUBLIC_HOST=localhost -> Caddy issues its own certificates (trust its root
+# CA once: `docker compose exec caddy cat /data/caddy/pki/authorities/local/root.crt`).
+# PUBLIC_HOST=your.domain -> certificates from Let's Encrypt, ACME_EMAIL set.
+#
+# Three hostnames:
+#   {PUBLIC_HOST}          Airflow (its own login)
+#   orion.{PUBLIC_HOST}    NGSI-LD broker, X-API-Key required
+#   influx.{PUBLIC_HOST}   InfluxDB (its own token / login)
+{
+	email {$ACME_EMAIL}
+}
+
+(hardening) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+		-Server
+	}
+	encode gzip
+}
+
+{$PUBLIC_HOST} {
+	import hardening
+	reverse_proxy airflow-apiserver:8080
+}
+
+orion.{$PUBLIC_HOST} {
+	import hardening
+	@authorized header X-API-Key {$ORION_API_KEY}
+	handle @authorized {
+		reverse_proxy orion-ld:1026
+	}
+	handle {
+		respond `{"type":"https://uri.etsi.org/ngsi-ld/errors/Unauthorized","title":"X-API-Key header required"}` 401
+	}
+}
+
+influx.{$PUBLIC_HOST} {
+	import hardening
+	reverse_proxy influxdb:8086
+}

@@ -1,0 +1,72 @@
+[project]
+name = "datawise-os-integration"
+version = "0.2.0"
+description = "Configurable data gates: Airflow pipelines that land any telemetry source, including legacy building and industrial systems, in FIWARE Orion-LD and InfluxDB"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+keywords = ["fiware", "ngsi-ld", "orion-ld", "influxdb", "airflow", "modbus", "bacnet", "opc-ua",
+            "smart-buildings", "energy", "iot", "smart-data-models"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Apache Airflow",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Monitoring",
+]
+dependencies = ["influxdb-client>=1.49", "requests", "tenacity", "PyYAML"]
+
+# TODO before the first release: point these at the repository that is
+# actually published (see docs/publishing-checklist.md).
+[project.urls]
+Homepage = "https://github.com/datawise-project/datawise-os-integration"
+Documentation = "https://github.com/datawise-project/datawise-os-integration/tree/main/docs"
+Issues = "https://github.com/datawise-project/datawise-os-integration/issues"
+
+# One extra per group of gates, so a deployment installs the drivers of the
+# upstreams it actually has. `pip install .[all-gates]` takes the lot except
+# python-snap7, which needs a native library on the host (see docs/gates.md).
+[project.optional-dependencies]
+modbus = ["pymodbus>=3.6,<4"]
+bacnet = ["BAC0>=23.7"]
+opcua = ["asyncua>=1.1"]
+snmp = ["pysnmp>=4.4,<6"]
+s7 = ["python-snap7>=2.0"]
+excel = ["openpyxl>=3.1"]
+sftp = ["paramiko>=3.4"]
+mqtt = ["paho-mqtt>=2.1"]
+sql = ["SQLAlchemy>=2.0"]
+all-gates = ["pymodbus>=3.6,<4", "BAC0>=23.7", "asyncua>=1.1", "pysnmp>=4.4,<6",
+             "openpyxl>=3.1", "paramiko>=3.4", "paho-mqtt>=2.1", "SQLAlchemy>=2.0"]
+dev = ["pytest", "ruff", "openpyxl", "SQLAlchemy", "paho-mqtt"]
+
+# The importable package is `datagates`, under plugins/ because that is where
+# Airflow looks for it. `pip install -e .` therefore makes gates developable
+# outside this tree: a third-party gate is `type: my_package.gates:MyGate`.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["plugins"]
+include = ["datagates*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = ["logs", "drop"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["datagates"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
