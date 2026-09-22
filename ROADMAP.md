@@ -199,7 +199,12 @@ Ordered. Each item is small enough for one session; finish it end to end
       live stack yet.
 - [ ] `docker compose up -d --build` on a clean machine; fix what breaks; record the fixes in this file.
 - [ ] Run the full weather cycle from §2 "Not yet verified" and paste the summary entity, a Flux result and the `verify_platform.py` output into `README.md` as "verified output".
-- [ ] Work through `docs/publishing-checklist.md`: identity and URLs, the secret scan, repository settings.
+- [x] Create the repository and push `main`. Done 2026-09-22:
+      `github.com/sstamatopoulos/datawise-os-integration`, **private** until the
+      first run below is verified, topics set, URLs in `pyproject.toml` and
+      `CITATION.cff` pointed at it. Making it public is one setting; it is
+      deliberately not yet done, because the two items above have not been.
+- [ ] Work through the rest of `docs/publishing-checklist.md`: branch protection with the four CI jobs required, private vulnerability reporting, Dependabot alerts, and the `SECURITY.md` / `CITATION.cff` gaps (maintainers, authors, funding).
 - [ ] Tag `v0.2.0`, push to GitHub, confirm all four CI jobs are green.
 
 ### M2 — Operability

@@ -20,12 +20,10 @@ classifiers = [
 ]
 dependencies = ["influxdb-client>=1.49", "requests", "tenacity", "PyYAML"]
 
-# TODO before the first release: point these at the repository that is
-# actually published (see docs/publishing-checklist.md).
 [project.urls]
-Homepage = "https://github.com/datawise-project/datawise-os-integration"
-Documentation = "https://github.com/datawise-project/datawise-os-integration/tree/main/docs"
-Issues = "https://github.com/datawise-project/datawise-os-integration/issues"
+Homepage = "https://github.com/sstamatopoulos/datawise-os-integration"
+Documentation = "https://github.com/sstamatopoulos/datawise-os-integration/tree/main/docs"
+Issues = "https://github.com/sstamatopoulos/datawise-os-integration/issues"
 
 # One extra per group of gates, so a deployment installs the drivers of the
 # upstreams it actually has. `pip install .[all-gates]` takes the lot except

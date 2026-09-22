@@ -6,11 +6,15 @@ worked through top to bottom by whoever presses the button; tick the items in
 
 ## 1. Decide the identity
 
-- [ ] The account or organisation that will own it, and the final repository
-      name. Everything below depends on it.
-- [ ] Replace the placeholder URL `github.com/datawise-project/datawise-os-integration`
-      in `pyproject.toml` (`[project.urls]`), `CITATION.cff`
-      (`repository-code`) and `.github/ISSUE_TEMPLATE/config.yml`.
+- [x] The account or organisation that will own it, and the final repository
+      name. Everything below depends on it. **Done 2026-09-22**:
+      `github.com/sstamatopoulos/datawise-os-integration`, created **private**
+      until section 2 is finished. If the consortium later wants it under an
+      organisation, transfer it rather than re-creating it, and redo this
+      section's URL edits.
+- [x] Replace the placeholder URL in `pyproject.toml` (`[project.urls]`),
+      `CITATION.cff` (`repository-code`) and
+      `.github/ISSUE_TEMPLATE/config.yml`.
 - [ ] Confirm the copyright line and the licence with the consortium.
       Apache-2.0 is the usual choice for Horizon Europe software outputs; the
       decision and its reason are in `ROADMAP.md` §3.

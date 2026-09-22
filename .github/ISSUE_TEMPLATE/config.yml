@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/datawise-project/datawise-os-integration/blob/main/SECURITY.md
+    url: https://github.com/sstamatopoulos/datawise-os-integration/blob/main/SECURITY.md
     about: Do not open an issue. Follow the private process in SECURITY.md.
   - name: How do I connect system X?
-    url: https://github.com/datawise-project/datawise-os-integration/blob/main/docs/legacy-systems.md
+    url: https://github.com/sstamatopoulos/datawise-os-integration/blob/main/docs/legacy-systems.md
     about: The product-to-gate table and the integration playbook answer most of these.
