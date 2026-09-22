@@ -50,6 +50,14 @@ the systems already installed on a site.
 - CI: Python 3.12 and 3.13, a packaging job, a job that installs every optional
   driver, and a DAG-build job that covers the disabled examples too.
 
+- **A controlled property vocabulary** (`plugins/datagates/core/vocab.py`,
+  `docs/properties.md`): every `controlledProperty` a gate may emit, with its
+  unit, its kind (instant / delta / register / state), how a consumer may
+  aggregate it, and a mapping towards SAREF and QUDT for RDF export. The
+  counter guard derives its cumulative set from it instead of keeping a copy,
+  and `tests/test_vocab.py` fails if a gate, the documentation or the consumer
+  client drifts from it.
+
 ### Changed
 
 - `csv_drop` and `http_json` now use the shared field map, timestamp parser and
@@ -60,6 +68,12 @@ the systems already installed on a site.
   run — a corrupt upload must not cost the directory's other files.
 - `docs/gates.md` rewritten around the catalogue, the shared blocks and the
   three kinds of gate.
+- **Property names corrected in the examples**: `humidity` is
+  `relativeHumidity`, `gasIndex` is `gasVolume`, and the `xml_drop` example no
+  longer labels a meter register `energyConsumption` while marking it
+  `cumulative: true` — it emits `energy`, which is what a register is. Only
+  example configuration was affected; renaming a property in a live deployment
+  mints a new summary id and orphans the old series.
 
 ### Fixed
 

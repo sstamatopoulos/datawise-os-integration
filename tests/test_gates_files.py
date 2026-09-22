@@ -109,7 +109,7 @@ EXPORT = """<?xml version="1.0" encoding="UTF-8"?>
 def _xml(tmp_path, **options):
     base = {"directory": str(tmp_path), "row_path": ".//MeterReading",
             "device_selector": "@meterId", "timestamp_selector": "ReadingTime",
-            "columns": {"Value/@kWh": {"property": "energyConsumption", "unit": "KWH", "cumulative": True},
+            "columns": {"Value/@kWh": {"property": "energy", "unit": "KWH", "cumulative": True},
                         "Quality": {"property": "readingQuality", "unit": "C62"}},
             "devices": [{"id": "J0025571", "name": "Gymnasium meter"}]}
     return XmlDropGate(GateConfig(key="meter_exports", type="xml_drop", options={**base, **options}))
@@ -118,11 +118,11 @@ def _xml(tmp_path, **options):
 def test_xml_drop_selects_rows_for_its_device_across_namespaces(tmp_path, doc_of):
     (tmp_path / "export.xml").write_text(EXPORT, encoding="utf-8")
     gate = _xml(tmp_path)
-    assert gate.cumulative == frozenset({"energyConsumption"})
+    assert gate.cumulative == frozenset({"energy"})
     samples = gate.fetch(doc_of(gate), *WINDOW)
     assert sorted((s.controlled_property, s.value, s.observed_at) for s in samples) == [
-        ("energyConsumption", 12345.5, "2026-09-16T09:00:00Z"),
-        ("energyConsumption", 12347.0, "2026-09-16T10:00:00Z"),
+        ("energy", 12345.5, "2026-09-16T09:00:00Z"),
+        ("energy", 12347.0, "2026-09-16T10:00:00Z"),
         ("readingQuality", 1.0, "2026-09-16T09:00:00Z"),
     ]
 

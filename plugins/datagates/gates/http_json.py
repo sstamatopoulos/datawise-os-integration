@@ -15,7 +15,7 @@ and numeric fields, described in YAML rather than code.
         fields:
           nco2:            {property: co2,         unit: "59"}
           temperatureReal: {property: temperature, unit: CEL}
-          humidity:        {property: humidity,    unit: P1}
+          humidity:        {property: relativeHumidity, unit: P1}
         devices:
           - id: 25667
             name: Room 120B

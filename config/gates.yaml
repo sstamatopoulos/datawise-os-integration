@@ -143,7 +143,7 @@ gates:
       device_column: MeterId
       columns:
         Consumption: {property: gasConsumption, unit: MTQ}
-        Index:       {property: gasIndex,       unit: MTQ, cumulative: true}
+        Index:       {property: gasVolume,      unit: MTQ, cumulative: true}
       devices:
         - {id: J00025571, name: Gas meter J00025571}
 
@@ -178,7 +178,7 @@ gates:
       timestamp_selector: "ReadingTime"
       timezone: Europe/Riga
       columns:
-        "Value/@kWh": {property: energyConsumption, unit: KWH, cumulative: true}
+        "Value/@kWh": {property: energy, unit: KWH, cumulative: true}   # a register, not a period total
       devices:
         - {id: J0025571, name: Gymnasium electricity meter}
 
@@ -224,7 +224,7 @@ gates:
       fields:
         co2:         {property: co2,         unit: "59"}
         temperature: {property: temperature, unit: CEL}
-        humidity:    {property: humidity,    unit: P1}
+        humidity:    {property: relativeHumidity, unit: P1}
       devices:
         - {id: 25667, name: Room 120B}
 

@@ -108,14 +108,14 @@ def test_modbus_reads_32_bit_counters_bits_and_coils(doc_of):
 def test_modbus_one_unreadable_register_does_not_lose_the_others(doc_of, caplog):
     gate = _modbus(devices=[{"id": "m1", "host": "h", "fields": {
         "1": {"property": "temperature", "unit": "CEL"},
-        "2": {"property": "humidity", "unit": "P1"},
+        "2": {"property": "relativeHumidity", "unit": "P1"},
     }}])
     doc = doc_of(gate)
     with patch.object(gate, "_client") as client, \
          patch.object(gate, "_call", side_effect=[_result(error=True), _result(registers=[55])]):
         client.return_value.connect.return_value = True
         samples = gate.fetch(doc, NOW, NOW)
-    assert [(s.controlled_property, s.value) for s in samples] == [("humidity", 55.0)]
+    assert [(s.controlled_property, s.value) for s in samples] == [("relativeHumidity", 55.0)]
 
 
 def test_modbus_refuses_an_unknown_register_table(doc_of):

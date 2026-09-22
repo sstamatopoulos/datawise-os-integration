@@ -29,6 +29,9 @@ A built-in gate ships with:
 - an entry in `BUILTIN_TYPES` (`gates/registry.py`), a line in
   `requirements-gates.txt` and an extra in `pyproject.toml` if it needs a
   driver, and any new `${VAR}` in `.env.example` and `docker-compose.yml`;
+- every property it emits registered in `core/vocab.py` and
+  `docs/properties.md`, with its unit, kind and aggregation rule — a consumer
+  cannot tell `energy` from `energyConsumption` by guessing;
 - a **working, disabled example** in `config/gates.yaml` — the catalogue is
   tested, so the example must construct and discover devices offline;
 - a section in `docs/gates.md`, and a row in

@@ -14,7 +14,7 @@ share, rsync), one row per timestamp.
         device_column: MeterId                    # which row belongs to which device
         columns:                                  # csv column -> property
           Consumption: {property: gasConsumption, unit: MTQ}
-          Index:       {property: gasIndex,       unit: MTQ, cumulative: true}
+          Index:       {property: gasVolume,      unit: MTQ, cumulative: true}
         devices:
           - id: J00025571
             name: Gymnasium gas meter

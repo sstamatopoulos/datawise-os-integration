@@ -52,8 +52,10 @@ Register it in `config/gates.yaml` by import path:
 Put the module anywhere on `PYTHONPATH` (`plugins/` is), or `pip install -e .`
 this repository and develop your gate in its own package. To contribute a gate
 type, add it to `BUILTIN_TYPES` in `plugins/datagates/gates/registry.py`, ship
-a disabled example in `config/gates.yaml`, a section in `docs/gates.md` and a
-test on a recorded payload — `tests/test_registry.py` enforces the first two.
+a disabled example in `config/gates.yaml`, a section in `docs/gates.md`, every
+property it emits in `core/vocab.py` and [properties.md](properties.md), and a
+test on a recorded payload — `tests/test_registry.py` and
+`tests/test_vocab.py` enforce all but the last.
 
 ## Use the shared machinery
 
@@ -68,6 +70,7 @@ before writing the same code again; the first three save the most.
 | Read registers or byte blocks | `core.binary` | typed decoding, word order, bit extraction |
 | Read rows out of XML | `core.xmlrows` | namespace-insensitive matching and the small selector language |
 | Know how often a gate should run | `core.cadence.expected_interval` | a cron expression as a `timedelta`, for freshness checks |
+| Name a property, or check one | `core.vocab` | the registered vocabulary, its units, how each may be aggregated, and the SAREF/QUDT mapping ([properties.md](properties.md)) |
 
 And two base classes that are worth subclassing rather than imitating:
 

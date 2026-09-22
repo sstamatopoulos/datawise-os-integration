@@ -85,11 +85,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Properties whose values are running totals. Kept in step with
-# clients/python/datagates_client.py and docs/data-model.md.
-CUMULATIVE_PROPERTIES = frozenset({
-    "energy", "gasIndex", "waterIndex", "volume", "workingHours",
-})
+# Properties whose values are running totals — from core.vocab, which is the
+# registry. This used to be a literal set here, a second copy in
+# clients/python/datagates_client.py and a third list in docs/data-model.md,
+# each with a comment promising to stay in step with the others. Deriving it
+# means registering a cumulative property is the only step; the deprecated
+# names (gasIndex, waterIndex) are still guarded, because a deployment that
+# carries them from before the rename must not quietly lose its protection.
+from datagates.core.vocab import CUMULATIVE_PROPERTIES  # noqa: F401  (re-exported)
 
 # How many consecutive samples must agree with a new level before we
 # believe it. Two is enough to reject a lone interloper while still

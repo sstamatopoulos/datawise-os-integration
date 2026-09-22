@@ -18,7 +18,7 @@ or attributes.
         timestamp_format: iso
         timezone: Europe/Riga
         columns:
-          "Value/@kWh":     {property: energyConsumption, unit: KWH, cumulative: true}
+          "Value/@kWh":     {property: energy, unit: KWH, cumulative: true}
           "Quality":        {property: readingQuality, unit: C62}
         devices:
           - {id: "J0025571", name: Gymnasium electricity meter}

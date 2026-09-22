@@ -660,9 +660,14 @@ the platform bans for an hour on abuse, so `min_interval_s` defaults to 0.5.
 
 ## Unit codes
 
-UN/CEFACT Recommendation 20 where one exists: `CEL` °C, `KWH`, `KWT`, `WTT` W,
-`MAW` MW, `VLT` V, `AMP` A, `MTQ` m³, `MQH` m³/h, `LTR` l, `P1` %, `59` ppm,
-`A97` hPa, `MTR` m, `MTS` m/s, `DD` degrees, `MMT` mm, `2N` dB, `C62`
-dimensionless, `EUR_MWH` (not a UN/CEFACT code: there is none for currency per
-energy). Mark running totals `cumulative: true`; consumers difference them,
+UN/CEFACT Recommendation 20 codes. The full list, with what each property
+means and how a consumer may aggregate it, is in
+[properties.md](properties.md) — that page is the registry's documentation and
+a test fails if a built-in gate emits a property or a unit missing from it.
+
+In short: `CEL` °C, `KWH`, `KWT`, `WTT` W, `MAW` MW, `VLT` V, `AMP` A,
+`MTQ` m³, `MQH` m³/h, `LTR` l, `P1` % (stored as a fraction 0 to 1), `59` ppm,
+`A97` hPa, `MTR` m, `MTS` m/s, `DD` degrees, `MMT` mm, `2N` dB, `HUR` h,
+`C62` dimensionless, `EUR_MWH` (not a UN/CEFACT code: none exists for currency
+per energy). Mark running totals `cumulative: true`; consumers difference them,
 and the counter guard protects them.

@@ -291,6 +291,20 @@ warnings.
   on Caddy-specific behaviour, so swapping is a contained change — one config
   file and one compose service, keeping the contract in `proxy/Caddyfile`'s
   header. Treat this as a preference with a reason, not as a constraint.
+- **One vocabulary, derived rather than repeated.** `controlledProperty` names,
+  their units, their kind and their aggregation rule live in `core/vocab.py`;
+  the counter guard's cumulative set is computed from it. Three hand-maintained
+  copies of that set had already drifted apart, and a registry nothing enforces
+  is an appendix, so `tests/test_vocab.py` holds the gates, the docs and the
+  consumer client to it. The client keeps a deliberate copy, because a consumer
+  copies that one file and it must not import the platform; a test compares
+  them.
+- **Semantic models are export projections, never stored contexts.** SAREF and
+  QUDT mappings live beside the vocabulary and are applied on the way out.
+  Attaching such a context to what Orion-LD stores expands attribute names and
+  breaks every consumer's `q=` filter, which is the same trap as the Smart Data
+  Model contexts above. Time series stay in InfluxDB: an RDF export carries the
+  model and a pointer, not observations as triples.
 - **Env-only settings, YAML-only gate config, `${VAR}` for secrets.** No
   `config.ini` files, ever.
 - **Apache-2.0** as the usual choice for Horizon Europe software outputs.
@@ -439,10 +453,23 @@ the second and third deployment.
       which is the thing naming conventions are worst at. **Tested by** a
       fixture building in the `integration` job and a query in the consumer
       guide.
-- [ ] **SAREF4BLDG / SAREF4ENER mapping**: a documented mapping from this
-      model, and an optional export. European projects increasingly require
-      SAREF alignment, and this is a contribution the research community can
-      use rather than plumbing only we need.
+- [x] **A controlled property vocabulary** (`core/vocab.py`,
+      `docs/properties.md`). Done 2026-09-22, and it turned out to be the
+      prerequisite for everything else here: the gates had been emitting
+      `energy` and `energyConsumption`, `humidity` and `relativeHumidity`, and
+      a `gasIndex` that meant what `energy` means, while three files kept
+      separate copies of "which properties are running totals", each promising
+      in a comment to stay in step. The registry carries unit, kind
+      (instant / delta / register / state) and aggregation rule per property;
+      the counter guard now derives its set from it; `tests/test_vocab.py`
+      fails if a gate emits anything unregistered.
+- [ ] **SAREF4BLDG / SAREF4ENER mapping**: the table exists in `core/vocab.py`
+      with 7 of 35 properties confirmed against SAREF core and the other 28
+      marked `candidate` or `none`. **Verify them against saref.etsi.org and
+      qudt.org before any export is published** — a wrong IRI validates, which
+      is worse than a missing one. Then the exporter (`scripts/export_saref.py`)
+      is a small job: the model as Turtle or JSON-LD, with `influxMeasurement`
+      as the pointer to the series, and no observations as triples.
 - [ ] **Unit conversion helpers**: the UN/CEFACT codes are already a de facto
       vocabulary here; a small converter (Wh<->kWh, degC<->K, m3<->l) would stop
       every consumer writing their own, wrongly, in a notebook.

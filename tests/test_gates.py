@@ -75,15 +75,15 @@ def test_csv_drop_reads_rows_for_its_device_only(tmp_path):
         "directory": str(tmp_path), "delimiter": ";", "timestamp_column": "Timestamp",
         "timestamp_format": "%Y-%m-%d %H:%M:%S", "timezone": "Europe/Riga", "device_column": "MeterId",
         "columns": {"Consumption": {"property": "gasConsumption", "unit": "MTQ"},
-                    "Index": {"property": "gasIndex", "unit": "MTQ", "cumulative": True}},
+                    "Index": {"property": "gasVolume", "unit": "MTQ", "cumulative": True}},
         "devices": [{"id": "M1", "name": "meter one"}]}))
-    assert g.cumulative == frozenset({"gasIndex"})
+    assert g.cumulative == frozenset({"gasVolume"})
     (d,) = g.discover()
     doc = device_doc(device_entity(d, g), g)
     s = g.fetch(doc, datetime(2026, 9, 16, 7, 30, tzinfo=UTC), datetime(2026, 9, 17, tzinfo=UTC))
     # 10:00 Riga = 07:00Z is before the window; 11:00 Riga = 08:00Z is in it; M2 is ignored
     assert [(x.controlled_property, x.value, x.observed_at) for x in s] == [
-        ("gasConsumption", 0.7, "2026-09-16T08:00:00Z"), ("gasIndex", 100.7, "2026-09-16T08:00:00Z")]
+        ("gasConsumption", 0.7, "2026-09-16T08:00:00Z"), ("gasVolume", 100.7, "2026-09-16T08:00:00Z")]
 
 
 # ── http json ───────────────────────────────────────────────────────

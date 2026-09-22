@@ -198,9 +198,10 @@ A legacy one looks no different — the plant room instead of an API:
 
 `config/gates.yaml` ships a working, disabled example of **every** gate type;
 copy the one you need. Every option is documented in
-[docs/gates.md](docs/gates.md), the entity model and the conventions consumers
-rely on in [docs/data-model.md](docs/data-model.md), and writing a new gate
-type is two methods: [docs/adding-a-gate.md](docs/adding-a-gate.md).
+[docs/gates.md](docs/gates.md), every property and unit a gate may emit in
+[docs/properties.md](docs/properties.md), the entity model and the conventions
+consumers rely on in [docs/data-model.md](docs/data-model.md), and writing a
+new gate type is two methods: [docs/adding-a-gate.md](docs/adding-a-gate.md).
 
 ## The gate catalogue
 

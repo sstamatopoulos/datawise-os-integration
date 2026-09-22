@@ -35,11 +35,16 @@ from datetime import UTC, datetime
 DEFAULT_ORION = "http://localhost:1026"
 DEFAULT_INFLUX = "http://localhost:8086"
 
-# Properties whose values are running totals rather than per-period
-# amounts. Summing these is meaningless — difference consecutive
-# readings instead. Kept in sync with ../README.md §12.1.
+# Properties whose values are running totals rather than per-period amounts.
+# Summing these is meaningless — difference consecutive readings instead.
+#
+# Duplicated from plugins/datagates/core/vocab.py on purpose: this file is
+# meant to be copied into a consumer's own project, so it must not import the
+# platform. tests/test_vocab.py asserts the two agree, which is the only
+# reliable way to keep a deliberate copy honest.
 CUMULATIVE_PROPERTIES = frozenset({
-    "energy", "gasIndex", "waterIndex", "volume", "workingHours",
+    "energy", "energyTotal", "gasIndex", "gasVolume", "volume",
+    "waterIndex", "waterVolume", "workingHours",
 })
 
 # How many series a single batched query may filter on.

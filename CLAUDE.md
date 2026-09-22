@@ -39,6 +39,8 @@ stack or `pip install apache-airflow==3.0.6` under its constraints file (see
 - A new gate type ships with all of: class + docstring, `BUILTIN_TYPES` entry, a working disabled example in `config/gates.yaml`, a driver line in `requirements-gates.txt` and an extra in `pyproject.toml` if it needs one, new `${VAR}`s in `.env.example` **and** `docker-compose.yml`, a section in `docs/gates.md`, a row in `docs/legacy-systems.md`, tests. `CONTRIBUTING.md` is the checklist.
 - Import third-party drivers **inside the method that uses them**, never at module level: a worker without `pymodbus` must still load every other DAG, and a test enforces it.
 - Use the shared machinery instead of reimplementing it (`FieldMap` for a `fields:` block, `client_for` for HTTP, `parse_stamp` for timestamps, `PollingGate` for an upstream with no history, `FileDropGate` for files).
+- Every `controlledProperty` a gate emits is registered in `core/vocab.py` and `docs/properties.md`, with its unit, kind (instant / delta / register / state) and aggregation rule. Renaming one mints a new summary id and orphans the old series.
+- Semantic models (SAREF, the full Smart Data Models) are **export projections**, never contexts attached to stored entities: attaching one expands attribute names in Orion-LD and breaks every consumer's `q=` filter.
 - Use `core.entities.as_list` on anything read back from Orion-LD; never index raw values.
 - `location` is the GeoProperty; never put text there.
 - Existing entities are updated with POST /attrs (append), never PATCH.
