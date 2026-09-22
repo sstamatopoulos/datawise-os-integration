@@ -162,6 +162,17 @@ to the unit suite and to CI, which is the whole argument for running the thing.
    mode this platform has**, and this class of bug -- a filter that excludes
    everything -- produces it; `tests/test_core.py` pins the query shape.
 
+The `integration` job's own first run cost two more, both about the
+difference between a script that works here and a script that works anywhere:
+`scripts/*.sh` were committed without the executable bit (git mode 100644), so
+`./scripts/gen-secrets.sh` -- the command the README gives -- failed with exit
+126 on a Linux runner and would have failed for the first person to clone the
+repository; and `gen-secrets.sh` called python with the `cryptography` package
+to make one random key, falling back to `docker run` on the 3 GB Airflow image,
+which a runner with a system-managed python could not install. A Fernet key is
+urlsafe-base64 of 32 random bytes, so `openssl rand -base64 32 | tr '+/' '-_'`
+is exactly equivalent and needs nothing.
+
 `scripts/integration_test.sh` then cost three more, all of them the same
 shape -- a tool that works in the shell and not in the script:
 

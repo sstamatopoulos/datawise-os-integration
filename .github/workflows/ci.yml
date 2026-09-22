@@ -75,9 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: generate secrets
-        run: |
-          pip install cryptography          # gen-secrets.sh needs it for the Fernet key
-          ./scripts/gen-secrets.sh
+        run: ./scripts/gen-secrets.sh
       - name: build and start the stack
         run: |
           docker compose build
@@ -86,6 +84,7 @@ jobs:
         run: ./scripts/integration_test.sh
       - name: what the services said, if it failed
         if: failure()
+        continue-on-error: true          # diagnostics must not mask the real failure
         run: |
           docker compose ps
           for service in orion-ld influxdb caddy airflow-scheduler airflow-dag-processor airflow-init; do
@@ -98,7 +97,9 @@ jobs:
           done
       - name: stop the stack
         if: always()
-        run: docker compose down -v
+        # Tolerant on purpose: if the stack never came up, compose cannot even
+        # interpolate .env, and a failing teardown would hide why.
+        run: docker compose down -v || true
 
   dags-load:
     # The DAG factory needs Airflow. Every configured gate must build, the

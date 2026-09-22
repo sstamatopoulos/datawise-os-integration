@@ -12,8 +12,13 @@ if [[ -e .env ]]; then
 fi
 
 rand() { openssl rand -base64 48 | tr -d '/+=\n' | cut -c1-"${1:-40}"; }
-fernet() { python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null \
-           || docker run --rm apache/airflow:3.0.6 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"; }
+# A Fernet key is urlsafe-base64 of 32 random bytes, which openssl and tr
+# produce exactly (44 characters, decoding to 32 bytes). This used to call
+# python with the cryptography package and fall back to `docker run` on the
+# Airflow image, so a machine without cryptography waited on a 3 GB pull to
+# write one line of .env -- and a CI runner that has cryptography in a
+# system-managed environment could not install it at all.
+fernet() { openssl rand -base64 32 | tr '+/' '-_'; }
 
 # On Linux the container must run as the invoking user or the bind-mounted
 # logs/ and drop/ directories end up root-owned. On Docker Desktop (Windows,
