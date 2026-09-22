@@ -1,4 +1,4 @@
-FROM apache/airflow:3.0.6
+FROM apache/airflow:3.3.2
 
 ARG CONSTRAINTS_URL="https://raw.githubusercontent.com/apache/airflow/constraints-3.0.6/constraints-3.12.txt"
 
