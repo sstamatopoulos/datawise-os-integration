@@ -32,13 +32,13 @@ Issues = "https://github.com/sstamatopoulos/datawise-os-integration/issues"
 modbus = ["pymodbus>=3.6,<4"]
 bacnet = ["BAC0>=23.7"]
 opcua = ["asyncua>=1.1"]
-snmp = ["pysnmp>=4.4,<6"]
+snmp = ["pysnmp>=4.4,<8"]
 s7 = ["python-snap7>=2.0"]
 excel = ["openpyxl>=3.1"]
 sftp = ["paramiko>=3.4"]
 mqtt = ["paho-mqtt>=2.1"]
 sql = ["SQLAlchemy>=2.0"]
-all-gates = ["pymodbus>=3.6,<4", "BAC0>=23.7", "asyncua>=1.1", "pysnmp>=4.4,<6",
+all-gates = ["pymodbus>=3.6,<4", "BAC0>=23.7", "asyncua>=1.1", "pysnmp>=4.4,<8",
              "openpyxl>=3.1", "paramiko>=3.4", "paho-mqtt>=2.1", "SQLAlchemy>=2.0"]
 dev = ["pytest", "ruff", "openpyxl", "SQLAlchemy", "paho-mqtt"]
 

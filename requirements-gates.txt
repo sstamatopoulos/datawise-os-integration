@@ -15,7 +15,7 @@ BAC0>=23.7                # bacnet — also needs host or macvlan networking for
                           #          BACnet broadcasts; a bridged container
                           #          cannot receive them (see docs/gates.md)
 asyncua>=1.1              # opcua
-pysnmp>=4.4,<6            # snmp — the gate uses the synchronous hlapi. pysnmp 6
+pysnmp>=4.4,<8            # snmp — the gate uses the synchronous hlapi. pysnmp 6
                           #        reorganised it into v1arch/v3arch, so either
                           #        stay below 6 or adapt SnmpGate._get, which is
                           #        the one method that touches the library.
