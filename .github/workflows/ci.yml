@@ -111,7 +111,7 @@ jobs:
       DATAGATES_CONFIG: ${{ github.workspace }}/config/gates.yaml
       TB_USERNAME: u
       TB_PASSWORD: p
-      MESH_API_KEY: k
+      INDOOR_AIR_API_KEY: k
       ENTSOE_TOKEN: t
     steps:
       - uses: actions/checkout@v7

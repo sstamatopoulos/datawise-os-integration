@@ -64,7 +64,7 @@ x-airflow-common: &airflow-common
     ZABBIX_TOKEN: ${ZABBIX_TOKEN:-}
     TB_USERNAME: ${TB_USERNAME:-}
     TB_PASSWORD: ${TB_PASSWORD:-}
-    MESH_API_KEY: ${MESH_API_KEY:-}
+    INDOOR_AIR_API_KEY: ${INDOOR_AIR_API_KEY:-}
     WS_USER: ${WS_USER:-}
     WS_PASSWORD: ${WS_PASSWORD:-}
     PORTAL_USER: ${PORTAL_USER:-}

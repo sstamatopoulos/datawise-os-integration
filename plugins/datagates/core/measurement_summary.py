@@ -32,7 +32,7 @@ Entity shape
                           name). Consumers can drop it verbatim into a
                           Flux `filter(fn: (r) => r._measurement == "…")`.
     dataProvider:         the gate's data_provider, e.g. "open-meteo"
-    source:               canonical source id (e.g. "co2.mesh.lv")
+    source:               canonical source id (e.g. "co2.mesh.example")
     # Refreshed on every run DAG:
     lastReadingAt:        ISO 8601 UTC
     lastReadingValue:     numeric

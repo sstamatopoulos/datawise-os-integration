@@ -7,7 +7,7 @@ and numeric fields, described in YAML rather than code.
       options:
         url: "https://api.example.org/device/{device_id}/sensor-data"
         params: {fromDate: "{start_date}", toDate: "{end_date}"}
-        auth: {type: bearer, token: "${MESH_API_KEY}"}
+        auth: {type: bearer, token: "${INDOOR_AIR_API_KEY}"}
         layout: columns            # "records" (list of objects) or "columns" (parallel arrays)
         records_path: ""           # dotted path to the list / object, "" = the body
         time_field: timestamp

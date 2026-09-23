@@ -13,7 +13,7 @@ from datagates.gates.registry import BUILTIN_TYPES, load_config, load_gates, res
 # Secrets the shipped examples reference. Unset variables expand to an empty
 # string, which is fine everywhere except where a gate refuses to be built
 # without the value.
-EXAMPLE_SECRETS = {"TB_USERNAME": "u", "TB_PASSWORD": "p", "MESH_API_KEY": "k", "ENTSOE_TOKEN": "t"}
+EXAMPLE_SECRETS = {"TB_USERNAME": "u", "TB_PASSWORD": "p", "INDOOR_AIR_API_KEY": "k", "ENTSOE_TOKEN": "t"}
 
 # Third-party packages a gate may import lazily. None of them is installed in
 # CI, and none of them may be needed to *build* a gate or a DAG.

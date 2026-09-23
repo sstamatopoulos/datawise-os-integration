@@ -68,14 +68,22 @@ git check-ignore -v .env logs drop                                              
 - [ ] Description: one sentence, and the topics `fiware`, `ngsi-ld`,
       `orion-ld`, `influxdb`, `apache-airflow`, `modbus`, `bacnet`, `opc-ua`,
       `smart-buildings`, `energy`, `iot`, `data-integration`.
-- [ ] Default branch `main`; branch protection with the CI jobs
-      (`lint-and-test`, `packaging`, `gate-extras`, `dags-load`) required.
-- [ ] Issues on, with the templates; Discussions on if someone will read them.
-- [ ] Actions: workflow permissions read-only, and no secrets configured (CI
-      needs none).
-- [ ] Dependabot alerts and security updates on; the update schedule is
-      already in `.github/dependabot.yml`.
-- [ ] Private vulnerability reporting on, so `SECURITY.md` has a channel.
+- [x] Description and the 12 topics. **Done 2026-09-22.**
+- [x] Issues and Discussions on; squash and merge allowed, rebase off, branch
+      deleted on merge. **Done 2026-09-22.**
+- [x] Dependabot alerts and automated security fixes on. **Done 2026-09-22.**
+- [x] Actions: workflow token read-only, and no secrets configured. **Done.**
+- [ ] **After going public, not before**: branch protection on `main` requiring
+      all six CI jobs (`lint-and-test (3.12)`, `lint-and-test (3.13)`,
+      `packaging`, `gate-extras`, `dags-load`, `integration`), and private
+      vulnerability reporting. Both are refused on a free private repository —
+      branch protection answers *"Upgrade to GitHub Pro or make this repository
+      public"* and vulnerability reporting answers 404 — so they are the first
+      two things to do once the switch is flipped, not part of the preparation.
+- [ ] Issue templates visible and sensible once the repository is public.
+- [ ] Check the first Dependabot run after publication: the schedule is in
+      `.github/dependabot.yml`, and five bumps arrived within a day of the
+      repository being created.
 
 ## 5. Release
 

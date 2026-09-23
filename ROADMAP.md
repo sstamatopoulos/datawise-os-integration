@@ -456,7 +456,7 @@ by somebody remembering to check.
 - [x] Field protocols: `modbus`, `bacnet`, `opcua`, `s7`, `snmp`, with `PollingGate` as their shared base. Done 2026-09-22.
 - [x] Files: `excel_drop`, `xml_drop`, `remote_drop` (SFTP/FTPS/FTP), with `FileDropGate` as their shared base. Done 2026-09-22; this supersedes the planned SFTP service in compose (see §3).
 - [x] Web: `http_xml` (including SOAP), `http_csv`, `obix` (Tridium Niagara), `zabbix`, `entsoe`. Done 2026-09-22.
-- [ ] Pulse-counter style "readers with inputs" as a documented `http_json` recipe (the production MESH sub-meter mapping), or a small gate if placeholders are not enough.
+- [ ] Pulse-counter style "readers with inputs" as a documented `http_json` recipe (the production indoor-air sub-meter mapping), or a small gate if placeholders are not enough.
 - [ ] Real-upstream verification pass over the new gates (§2 item 1), starting with whichever the pilots have.
 
 ### M4 — Consumers
@@ -610,7 +610,6 @@ query recipes and performance measurements to port for M4;
 `docs/data-access/verify_platform.py` is the original of
 `scripts/verify_platform.py`, with 22 checks in six sections — the operator and
 query sections are the parts not yet ported; `dags/daily_health_check.py` and
-`dags/dq_weekly_report.py` are the sources for M2. The MESH, LMT, e-st.lv and
-Solinteg connectors there show real-world API quirks worth turning into gate
+`dags/dq_weekly_report.py` are the sources for M2. Its indoor-air, mobile-operator, DSO metering and PV-inverter connectors show real-world API quirks worth turning into gate
 docstrings, and the pilots' Modbus and BACnet point lists are the fastest way
 to verify the new field-protocol gates against something real.

@@ -11,7 +11,7 @@ import pytest
 from datagates.core import vocab
 from datagates.gates.registry import BUILTIN_TYPES, load_gates
 
-EXAMPLE_SECRETS = {"TB_USERNAME": "u", "TB_PASSWORD": "p", "MESH_API_KEY": "k", "ENTSOE_TOKEN": "t"}
+EXAMPLE_SECRETS = {"TB_USERNAME": "u", "TB_PASSWORD": "p", "INDOOR_AIR_API_KEY": "k", "ENTSOE_TOKEN": "t"}
 
 
 @pytest.fixture

@@ -240,7 +240,7 @@ def test_describe_reads_as_words():
 def test_every_configured_gate_has_a_cadence_a_health_check_can_use(monkeypatch):
     """A gate whose schedule nothing can interpret cannot be monitored, so
     the shipped examples must all be interpretable."""
-    for name, value in {"TB_USERNAME": "u", "TB_PASSWORD": "p", "MESH_API_KEY": "k",
+    for name, value in {"TB_USERNAME": "u", "TB_PASSWORD": "p", "INDOOR_AIR_API_KEY": "k",
                         "ENTSOE_TOKEN": "t"}.items():
         monkeypatch.setenv(name, value)
     from datagates.gates.registry import load_gates

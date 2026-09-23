@@ -217,7 +217,7 @@ gates:
     options:
       url: "https://api.example.org/device/{device_id}/sensor-data"
       params: {fromDate: "{start_date}", toDate: "{end_date}"}
-      auth: {type: bearer, token: "${MESH_API_KEY}"}
+      auth: {type: bearer, token: "${INDOOR_AIR_API_KEY}"}
       layout: columns
       time_field: timestamp
       time_format: iso
