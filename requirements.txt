@@ -1,5 +1,5 @@
 # Installed into the Airflow image (see Dockerfile) under Airflow's constraints.
-influxdb-client==1.49.0
+influxdb-client==1.50.0
 requests
 tenacity
 PyYAML
