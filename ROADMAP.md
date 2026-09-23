@@ -352,6 +352,15 @@ warnings.
   on Caddy-specific behaviour, so swapping is a contained change — one config
   file and one compose service, keeping the contract in `proxy/Caddyfile`'s
   header. Treat this as a preference with a reason, not as a constraint.
+- **Pin a floor, not a version, for anything the constraints file also pins.**
+  A dependency bump to `influxdb-client==1.50.0` was merged with every check
+  green and made the image unbuildable: Airflow 3.0.6's constraints pin
+  1.49.0, and pip refuses the contradiction outright ("The user requested
+  influxdb-client==1.50.0 / The user requested (constraint)
+  influxdb-client==1.49.0"). Only the `integration` job builds the image, so it
+  was the only job that could see it — and it is the reason the job exists.
+  `requirements.txt` states floors now; inside the image the constraints file
+  decides, and outside it pip resolves freely. Found 2026-09-23.
 - **A query that maps nothing says so.** In the `sql` gate's `long` layout the
   keys of `columns` are the *values* of `property_column`, so a fleet needs one
   entry per tag. Adding a device without its mapping made the gate return

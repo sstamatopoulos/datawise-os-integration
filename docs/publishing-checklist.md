@@ -18,9 +18,12 @@ worked through top to bottom by whoever presses the button; tick the items in
 - [ ] Confirm the copyright line and the licence with the consortium.
       Apache-2.0 is the usual choice for Horizon Europe software outputs; the
       decision and its reason are in `ROADMAP.md` §3.
-- [ ] `CITATION.cff`: list the individual authors with ORCIDs, and the funding
-      programme and grant number the project reports under.
-- [ ] Name the maintainers and the security contact in `SECURITY.md`.
+- [x] `CITATION.cff`: individual author added beside ICCS. **Done 2026-09-23.**
+      Still open: ORCIDs, the funding programme and grant number, and further
+      authors as the consortium decides attribution.
+- [x] Name the security contact in `SECURITY.md`, with a reporting process and
+      a scope section. **Done 2026-09-23**: GitHub private advisories or
+      sstamatopoulos@epu.ntua.gr.
 
 ## 2. Prove it works
 
@@ -29,15 +32,20 @@ still unverified; these are the same items.
 
 - [x] `ruff check .` clean and `pytest` green on 3.12 and 3.13. **Done**:
       CI is green on `main`, including the DAG factory under Airflow 3.0.6.
-- [ ] `docker compose up -d --build` on a clean machine. Record every fix in
-      `ROADMAP.md` — the next person hits the same ones.
-- [ ] One full cycle: `weather_forecast_init` → `weather_forecast_run` →
-      summaries in Orion carry `lastReadingAt` → the series is in InfluxDB
-      under the summary URN → `weather_observed_backfill` loads 2024 onward.
-- [ ] `python scripts/verify_platform.py` with nothing failing, and its output
-      pasted into `README.md` as verified output.
+- [x] `docker compose up -d --build` on a clean machine. **Done 2026-09-22**;
+      the seven fixes it cost are in `ROADMAP.md` §3.
+- [x] One full cycle, for all three credential-free gates. **Done 2026-09-22**:
+      48 forecast points, 1249 backfilled ERA5 points per property, 193 Nord
+      Pool points, and the proxy checked from outside.
+- [x] `python scripts/verify_platform.py` with nothing failing, and its output
+      in `README.md` under "Verified output". **Done 2026-09-22.**
+- [x] Automate the above so it cannot rot: `scripts/integration_test.sh` and the
+      `integration` CI job. **Done 2026-09-22**, and it has already caught a
+      dependency bump that every other job passed.
 - [ ] At least one credentialed gate against a real upstream, ideally a legacy
       one, so the field-protocol path is not published purely on unit tests.
+      The `sql` gate has run against SQLite — which found a data-loss bug in the
+      cursor backfill (§3) — but nothing needing a credential or a device has.
 
 ## 3. Check what you are about to publish
 
@@ -54,14 +62,16 @@ git status --porcelain                                                          
 git check-ignore -v .env logs drop                                                # all ignored
 ```
 
-- [ ] No credentials, tokens or keys.
-- [ ] No pilot-specific names, building ids, meter serials or partner
-      hostnames — in code, configuration, tests or documentation. Example
-      addresses are RFC 1918; example hosts end in `.example` or
-      `.example.org`.
-- [ ] `.env` is absent and ignored; `logs/` and `drop/` are ignored.
-- [ ] The git history is the one you intend to publish (this repository starts
-      fresh; if you rewrote anything, check with `git log --stat`).
+- [x] No credentials, tokens or keys. **Checked 2026-09-23**, including that the
+      live `ORION_API_KEY` from the running stack appears nowhere in the tree.
+- [x] No pilot-specific names, building ids, meter serials or partner
+      hostnames. **Checked 2026-09-23**, and it found two: a supplier's real
+      hostname in a core docstring and its product name in an example
+      environment variable, both now neutral. Example addresses are RFC 1918;
+      example hosts end in `.example`.
+- [x] `.env` is absent and ignored; `logs/` and `drop/` are ignored.
+- [x] The git history is the one intended: this repository starts fresh and
+      nothing has been rewritten.
 
 ## 4. Repository settings
 
@@ -87,10 +97,11 @@ git check-ignore -v .env logs drop                                              
 
 ## 5. Release
 
-- [ ] `CHANGELOG.md` finished for the version, with the unverified items named.
-- [ ] Same version in `pyproject.toml` and `CITATION.cff`.
-- [ ] Tag `v0.2.0`, push, confirm every CI job is green on the tag.
-- [ ] GitHub release with the changelog section as its notes.
+- [x] `CHANGELOG.md` finished and dated, with the unverified items named.
+- [x] Same version in `pyproject.toml` and `CITATION.cff` (0.2.0).
+- [x] Tag `v0.2.0` and push. **Done 2026-09-23.**
+- [x] GitHub release with notes covering the catalogue, what was verified, what
+      was not, and the defects a running stack found. **Done 2026-09-23.**
 - [ ] Zenodo: enable it for the repository *before* tagging if you want a DOI,
       then add the DOI to `CITATION.cff` and the README.
 - [ ] PyPI, when the gate contract has settled (ROADMAP M5). `pip install .`

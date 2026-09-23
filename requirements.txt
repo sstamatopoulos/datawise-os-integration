@@ -1,5 +1,15 @@
 # Installed into the Airflow image (see Dockerfile) under Airflow's constraints.
-influxdb-client==1.50.0
+#
+# A floor, not an exact pin. Airflow 3.0.6's constraints file pins
+# influxdb-client==1.49.0, so `influxdb-client==1.50.0` here could not install
+# at all inside the image: pip refuses with "The user requested
+# influxdb-client==1.50.0 / The user requested (constraint)
+# influxdb-client==1.49.0". Everything outside the image installs without those
+# constraints and gets whatever pip resolves, which is why every CI job except
+# the one that builds the image passed a dependency bump that made the image
+# unbuildable. Inside the image, the constraints file decides; state a floor and
+# let it.
+influxdb-client>=1.49
 requests
 tenacity
 PyYAML
