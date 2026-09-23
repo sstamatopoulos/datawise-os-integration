@@ -31,5 +31,5 @@ keywords:
   - OPC UA
   - data integration
 license: Apache-2.0
-version: 0.2.0
+version: 0.2.1
 repository-code: "https://github.com/sstamatopoulos/datawise-os-integration"

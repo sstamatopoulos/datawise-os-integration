@@ -1,6 +1,6 @@
 [project]
 name = "datawise-os-integration"
-version = "0.2.0"
+version = "0.2.1"
 description = "Configurable data gates: Airflow pipelines that land any telemetry source, including legacy building and industrial systems, in FIWARE Orion-LD and InfluxDB"
 readme = "README.md"
 requires-python = ">=3.12"

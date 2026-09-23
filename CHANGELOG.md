@@ -6,6 +6,20 @@ Notable changes per release. Dates are ISO. The project follows
 what "public" means here, and a breaking change to either gets a major bump
 and a migration note.
 
+## 0.2.1 — 2026-09-23
+
+### Fixed
+
+- **The Docker image could not be built from v0.2.0.** `requirements.txt` pinned
+  `influxdb-client==1.50.0` while Airflow 3.0.6's constraints file pins 1.49.0,
+  and pip refuses the contradiction rather than choosing: *"The user requested
+  influxdb-client==1.50.0 / The user requested (constraint)
+  influxdb-client==1.49.0"*. Only the image applies those constraints, so only
+  the `integration` CI job could see it — every other check passed the
+  dependency bump that introduced it. `requirements.txt` states floors now:
+  inside the image the constraints file decides, outside it pip resolves freely.
+  Nothing else changed. **Use this release rather than v0.2.0.**
+
 ## 0.2.0 — 2026-09-23
 
 The release that turns three gate types into a catalogue, with the emphasis on
