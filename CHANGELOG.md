@@ -83,6 +83,22 @@ the systems already installed on a site.
   now parses the folder with `DagBag`, as the scheduler does, and reports
   import errors with their file.
 
+- **The cursor backfill lost the reading on every window boundary.** A gate's
+  `fetch` returns `(a, b]` and the backwards walk filtered `observed < cursor`,
+  so the boundary sample was kept by no window: the exclusive lower bound of the
+  earlier one, the discarded cursor of the later one. Measured on a 241-reading
+  series: 233 stored before, 240 after, the absentee being one the counter guard
+  correctly refused. The rule now lives in `core/windows.py` with a test.
+  **Ported production code has the same hole**, so a platform sharing this
+  factory should re-backfill.
+- **The `sql` gate was silent when no tag matched.** In `long` layout the keys of
+  `columns` are the values of `property_column`; a device whose tag is not mapped
+  produced nothing, looking exactly like an upstream with no data. It now logs
+  the tags it saw and the ones it knows.
+- **`datagates check` died on other gates.** The CLI constructed every entry in
+  the config, so one disabled example with unset secrets broke it — in the
+  shipped configuration. It builds only what was asked for, and `list` reports
+  what cannot be built.
 - **The run DAG found no devices for any gate registering its own entity
   type.** `get_all_devices` filtered on `type=Device`, so `open_meteo`
   (`WeatherForecastLocation`) and `entsoe` (`MarketPriceFeed`) mapped over zero

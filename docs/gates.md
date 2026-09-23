@@ -511,6 +511,12 @@ A historian, a billing database, a legacy application's own tables.
 | `columns` | column names (`wide`) or the values of `property_column` (`long`) |
 | `devices[]` | `id` is what `:device_id` binds to |
 
+In `long` layout the keys of `columns` are the **values of
+`property_column`**, not column names, so a fleet needs one entry per tag. A
+device whose tag is missing from `columns` yields nothing at all; the gate logs
+the tags it saw when that happens, because the alternative is indistinguishable
+from an upstream with no data.
+
 Give the gate an account with SELECT and nothing else, and always filter on
 the window and order by time in the query: a backfill over an unbounded query
 reads the whole table, repeatedly, and the database administrator notices

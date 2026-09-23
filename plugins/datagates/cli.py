@@ -38,8 +38,8 @@ from typing import Any
 from datagates.core.cadence import describe
 from datagates.core.entities import device_doc, device_entity
 from datagates.core.timeparse import iso_z, parse_stamp
-from datagates.gates.base import Gate, Sample
-from datagates.gates.registry import BUILTIN_TYPES, load_gates, resolve_type
+from datagates.gates.base import Gate, GateConfig, Sample
+from datagates.gates.registry import BUILTIN_TYPES, load_config, resolve_type
 
 OK, FAILED, USAGE = 0, 1, 2
 
@@ -51,16 +51,25 @@ def _out(text: str = "") -> None:
     sys.stdout.write(text.encode("ascii", "replace").decode("ascii") + "\n")
 
 
-def _gates(args) -> list[Gate]:
-    return load_gates(args.config, include_disabled=True)
+def _configs(args) -> list[GateConfig]:
+    """The config entries, without constructing anything.
+
+    Constructing every gate to reach one of them is what `load_gates` does,
+    and it made the CLI useless against the shipped config: the disabled
+    examples reference secrets that are not set, so `datagates check my_gate`
+    died on `meters: base_url, username and password are required` — a gate the
+    user had not asked about and had not enabled.
+    """
+    return load_config(args.config)
 
 
 def _gate(args) -> Gate:
-    wanted = [g for g in _gates(args) if g.key == args.key]
+    """Construct only the gate that was asked for, so a failure is about it."""
+    wanted = [c for c in _configs(args) if c.key == args.key]
     if not wanted:
-        keys = sorted(g.key for g in _gates(args))
+        keys = sorted(c.key for c in _configs(args))
         raise SystemExit(f"no gate named {args.key!r} in the config; configured: {', '.join(keys)}")
-    return wanted[0]
+    return resolve_type(wanted[0].type)(wanted[0])
 
 
 def _docs(gate: Gate) -> list[dict[str, Any]]:
@@ -117,19 +126,35 @@ def cmd_types(args) -> int:
 
 
 def cmd_list(args) -> int:
-    gates = _gates(args)
-    if not gates:
+    """Every configured gate, and which of them cannot be built.
+
+    A gate that fails to construct is reported rather than raised: this is also
+    the quickest configuration check there is, and the DAG bag behaves the same
+    way (a broken gate is skipped so the rest still load).
+    """
+    configs = _configs(args)
+    if not configs:
         _out("no gates configured; see config/gates.yaml")
         return OK
     _out(f"{'key':<18} {'type':<14} {'state':<9} {'schedule':<15} {'cadence':<14} dags")
-    for gate in gates:
+    broken = 0
+    for config in configs:
+        state = "enabled" if config.enabled else "disabled"
+        try:
+            gate = resolve_type(config.type)(config)
+        except Exception as exc:                                # noqa: BLE001
+            broken += 1
+            _out(f"{config.key:<18} {config.type:<14} {state:<9} !! {type(exc).__name__}: {exc}")
+            continue
         dags = 2 if gate.backfill_mode == "none" else 3
-        state = "enabled" if gate.config.enabled else "disabled"
         _out(f"{gate.key:<18} {gate.type_name:<14} {state:<9} {str(gate.schedule):<15} "
              f"{describe(gate.schedule):<14} {dags}")
-    enabled = sum(1 for g in gates if g.config.enabled)
+    enabled = sum(1 for c in configs if c.enabled)
     _out()
-    _out(f"{len(gates)} gates configured, {enabled} enabled")
+    _out(f"{len(configs)} gates configured, {enabled} enabled"
+         + (f", {broken} that cannot be built" if broken else ""))
+    # A gate that cannot be built is a configuration error even when disabled,
+    # but it does not stop the ones that work, so this is not a failure.
     return OK
 
 

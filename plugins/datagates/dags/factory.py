@@ -39,6 +39,7 @@ from datagates.core.influx_writer import InfluxWriter
 from datagates.core.measurement_summary import refresh_summaries, summary_entity
 from datagates.core.orion_registry import OrionRegistry
 from datagates.core.settings import INFLUX_BATCH_SIZE
+from datagates.core.windows import keep_while_walking_back, windows
 from datagates.gates.base import Gate, Sample
 
 log = logging.getLogger(__name__)
@@ -72,12 +73,10 @@ def _write(gate: Gate, w: InfluxWriter, orion: OrionRegistry, samples: list[Samp
     return len(points), written, status
 
 
-def _windows(start: datetime, end: datetime, step: timedelta):
-    a = start
-    while a < end:
-        b = min(a + step, end)
-        yield a, b
-        a = b
+# The window walk and the boundary rule live in core.windows, with the reason
+# they are what they are: a strict inequality here lost one reading per window
+# boundary in every cursor backfill.
+_windows = windows
 
 
 # ── the three DAGs ───────────────────────────────────────────────────
@@ -252,7 +251,16 @@ def build_backfill_dag(gate: Gate):
                         break
                     cursor = datetime.fromtimestamp(cursor_ms / 1000, tz=UTC)
                     a = max(cursor - window, floor)
-                    samples = [s for s in gate.fetch(doc, a, cursor) if _ms(s.observed_at) < cursor_ms]
+                    # Inclusive at the cursor. A strict `<` here dropped the
+                    # sample sitting exactly on each window boundary: the
+                    # previous window never fetched it (it was that window's
+                    # exclusive lower bound) and this one discarded it, so it
+                    # was never stored at all. Verified against a dense series:
+                    # 7 of 241 readings missing, one per daily boundary.
+                    # Re-storing a boundary sample costs nothing, because
+                    # writes are keyed by time.
+                    samples = [s for s in gate.fetch(doc, a, cursor)
+                               if keep_while_walking_back(_ms(s.observed_at), cursor_ms)]
                     walked += 1
                     fetched += len(samples)
                     if samples:

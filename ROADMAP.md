@@ -82,6 +82,17 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
   market time unit), each with `verify_platform.py` reporting no failures and
   no warnings. That covers the rolling, revised-history and stateless-backfill
   shapes, and two entity types beyond `Device`.
+- **The counter guard, the cursor backfill and the `sql` gate**, 2026-09-22,
+  against a SQLite meter series of 241 hourly readings built for the purpose
+  (10 days, a register that only goes up, and one impossible reading of 7.0
+  where the register stood at ~100 000): the guard reported "rejected 1
+  reading(s): 72 accepted, 1 rejected as out-of-track" and the 7.0 never became
+  `rolling24hMin`, which is the damage it exists to prevent; the cursor backfill
+  walked 8 one-day windows, stopped at `windows_per_run`, **resumed from
+  `backfillCursorAt` on the next run** and terminated with `backfillDoneAt` on
+  "reached floor"; and 240 of the 241 readings are in InfluxDB, the only
+  absentee being the one the guard refused. That number was 233 before the
+  boundary bug below was fixed, measured on the same data.
 - **The proxy, from outside the stack**, same day: Airflow over TLS through
   Caddy answers 200; the broker answers 401 with an NGSI-LD `ProblemDetails`
   body without `X-API-Key` and 200 with it, returning the summary entity. Only
@@ -91,22 +102,50 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
 
 ### Not yet verified — do these first
 
-1. **No new gate has touched a real upstream.** The nineteen added types are
-   written from protocol and API knowledge and tested against recorded
-   payloads with the transport mocked at one method. Expect the first real
-   Modbus, BACnet, S7, oBIX or SOAP endpoint to need a fix; that is what the
-   one-method seam is for. Prioritise by what the pilots actually have.
+1. **Eighteen of the nineteen new gates have not touched a real upstream.**
+   `sql` has (SQLite, above), and getting it right took one configuration
+   mistake and one framework fix. The rest are written from protocol and API
+   knowledge and tested against recorded payloads with the transport mocked at
+   one method. Expect the first real Modbus, BACnet, S7, oBIX or SOAP endpoint
+   to need a fix; that is what the one-method seam is for. Prioritise by what
+   the pilots actually have.
 2. **Everything credentialed.** All three credential-free gates have run; no
    gate needing a token, a password or a network route to a device has.
-3. **The counter guard, the status path and the cursor backfill.** The weather
-   gates have no cumulative properties, implement no `status()`, and use the
-   stateless backfill, so three paths that matter to meters are still only
-   unit-tested: the guard rejecting an impossible reading, `refresh_status`
-   patching Device attributes, and the cursor walk with its resumable state.
-   A `csv_drop` gate over a handful of invented rows would exercise all three
-   without any credentials, and is the cheapest next verification there is.
+3. **A gate that actually returns `status()` attributes.** The task runs and
+   handles the empty case -- every weather run reports "no status attributes for
+   this gate" -- but no built-in gate implements it, so nothing has ever patched
+   battery or signal onto a Device. Implementing it for `http_json` and `snmp`
+   is an M2 item; verifying it comes with that.
 
 ## 3. Decisions and why (do not relitigate without reading)
+
+### The cursor backfill lost one reading per window boundary
+
+Found 2026-09-22 by backfilling a dense series and counting what arrived: 233 of
+241 readings stored, and the seven missing ones all sat exactly on a window
+boundary. This is ported production code, so **the private platform has the same
+hole**: every series backfilled with a cursor is missing one reading per window
+boundary, for as long as the backfill ran.
+
+The cause is one inequality. A gate's `fetch(device, a, b)` returns samples in
+`(a, b]`, and the cursor walk went backwards filtering `observed < cursor`:
+
+    window k    fetches (a_k, cursor_k]   and kept < cursor_k
+    window k+1  fetches (a_k+1, a_k]      where cursor_k+1 = a_k
+
+The sample at exactly `a_k` is window k's *exclusive lower bound*, so that
+window never fetches it; window k+1 fetches it as its upper bound and then
+discards it for being `>= cursor`. Neither window stores it and nothing reports
+a gap. The rule is `<=` now, in `core/windows.py` with its reasoning and a
+test, and re-storing a boundary sample costs nothing because writes are keyed
+by time. Verified afterwards on the same data: 240 of 241, the absentee being
+the reading the counter guard is supposed to refuse.
+
+The lesson is not about the inequality. Both stores agreed with each other, the
+DAG was green, the summaries looked right, and only counting against the source
+found it. A backfill that silently drops a fraction of its samples is the worst
+failure this platform can have, and the only defence is comparing a series with
+the upstream it came from.
 
 ### What the first run cost, and what it taught
 
@@ -313,6 +352,19 @@ warnings.
   on Caddy-specific behaviour, so swapping is a contained change — one config
   file and one compose service, keeping the contract in `proxy/Caddyfile`'s
   header. Treat this as a preference with a reason, not as a constraint.
+- **A query that maps nothing says so.** In the `sql` gate's `long` layout the
+  keys of `columns` are the *values* of `property_column`, so a fleet needs one
+  entry per tag. Adding a device without its mapping made the gate return
+  nothing, which is indistinguishable from an upstream with no data, and cost
+  half an hour of looking at the wrong thing during the verification above. The
+  gate now logs when rows came back and none of their tags are mapped, and
+  names the tags it saw. Prefer a loud no-op to a quiet one, everywhere.
+- **The CLI constructs only the gate it was asked about.** `load_gates`
+  constructs every entry in the file, so one disabled example with unset secrets
+  made `datagates check my_gate` fail on somebody else's gate -- in the shipped
+  configuration, which is mostly disabled examples. `datagates list` reports the
+  ones that cannot be built instead of dying on them, which makes it the
+  quickest configuration check available.
 - **One vocabulary, derived rather than repeated.** `controlledProperty` names,
   their units, their kind and their aggregation rule live in `core/vocab.py`;
   the counter guard's cumulative set is computed from it. Three hand-maintained

@@ -159,3 +159,34 @@ def test_a_rolling_gate_is_asked_for_its_own_window(capsys, config):
 def test_a_bad_timestamp_is_a_usage_error(capsys, config):
     assert main(["--config", config, "fetch", "heat", "--start", "last tuesday"]) == USAGE
     assert "could not parse" in capsys.readouterr().out
+
+
+def test_one_unconfigured_example_does_not_break_the_gate_you_asked_about(capsys, tmp_path):
+    """The shipped config is mostly disabled examples whose secrets are not
+    set. Constructing all of them to reach one — which `load_gates` does —
+    made `datagates check my_gate` die on `meters: base_url, username and
+    password are required`, a gate the user had neither asked about nor
+    enabled."""
+    config = tmp_path / "g.yaml"
+    config.write_text(textwrap.dedent("""
+        gates:
+          - key: prices
+            type: nordpool
+            options: {areas: [LV]}
+          - key: needs_a_token
+            type: entsoe
+            enabled: false
+            options:
+              document_type: A44
+              areas: [{id: LV, name: Latvia, eic: "10YLV-1001A00074"}]
+    """), encoding="utf-8")
+
+    assert main(["--config", str(config), "check", "prices"]) == OK
+    assert "prices (nordpool)" in capsys.readouterr().out
+
+    # `list` reports the broken one instead of raising: it is the quickest
+    # configuration check there is, and the DAG bag behaves the same way.
+    assert main(["--config", str(config), "list"]) == OK
+    out = capsys.readouterr().out
+    assert "needs_a_token" in out and "!! ValueError" in out
+    assert "1 that cannot be built" in out

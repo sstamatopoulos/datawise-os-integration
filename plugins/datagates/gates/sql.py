@@ -158,4 +158,14 @@ class SqlGate(Gate):
                 out.append(Sample(urn, field.property, value, observed_at))
         if skipped:
             log.info("%s: %d row(s) without a usable %s", self.key, skipped, self.ts_col)
+        if self.layout == "long" and rows and not out:
+            # The query answered and nothing was stored: in `long` layout the
+            # keys of `columns` are the *values* of property_column, so a fleet
+            # needs one entry per tag. Getting that wrong ingests nothing and
+            # looks exactly like an upstream with no data, which is the worst
+            # failure this platform has. Say so instead.
+            unmapped = sorted({str(r.get(self.property_column)) for r in rows})[:5]
+            log.warning("%s: %d row(s) returned but none of their %s values (%s) appear in "
+                        "options.columns (%s)", self.key, len(rows), self.property_column,
+                        ", ".join(unmapped), ", ".join(f.source for f in self.columns))
         return out
