@@ -1,15 +1,18 @@
 # Citation metadata, read by GitHub ("Cite this repository") and by Zenodo.
 #
-# TODO before the first tagged release (see docs/publishing-checklist.md):
-#   * list the individual authors, with ORCIDs where they have them, instead of
-#     only the consortium;
-#   * fill in the funding programme and grant number the project reports under;
-#   * add the DOI that Zenodo mints for the first release.
+# Still to fill in (see docs/publishing-checklist.md):
+#   * the funding programme and grant number the project reports under;
+#   * the DOI Zenodo mints for the first release;
+#   * further authors, with ORCIDs, as the consortium decides attribution.
 cff-version: 1.2.0
 title: "datawise-os-integration: configurable data gates for building and energy telemetry"
 message: "If you use this software, please cite it as below."
 type: software
 authors:
+  - family-names: "Stamatopoulos"
+    given-names: "Stathis"
+    email: "sstamatopoulos@epu.ntua.gr"
+    affiliation: "ICCS"
   - name: "ICCS"
 abstract: >-
   Apache Airflow pipelines that land telemetry from building and energy systems,

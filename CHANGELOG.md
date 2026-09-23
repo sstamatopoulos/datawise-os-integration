@@ -6,7 +6,7 @@ Notable changes per release. Dates are ISO. The project follows
 what "public" means here, and a breaking change to either gets a major bump
 and a migration note.
 
-## Unreleased — 0.2.0
+## 0.2.0 — 2026-09-23
 
 The release that turns three gate types into a catalogue, with the emphasis on
 the systems already installed on a site.

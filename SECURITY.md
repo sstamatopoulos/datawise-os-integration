@@ -45,6 +45,33 @@ with `.env` has everything: treat it like a private key.
 
 ## Reporting a vulnerability
 
-Open a private security advisory on GitHub for this repository, or e-mail
-the maintainers listed in `README.md`. Please do not file public issues for
-vulnerabilities.
+**Do not open a public issue.** Two private channels, either is fine:
+
+- GitHub's private vulnerability reporting on this repository (Security →
+  Report a vulnerability). It creates a private advisory thread, which is the
+  easiest place to work on a fix and to credit you in the advisory.
+- E-mail **sstamatopoulos@epu.ntua.gr**.
+
+What helps: the version or commit, which component (a gate, the framework, the
+compose stack, the proxy), and what an attacker gains. A proof of concept is
+welcome but not required.
+
+What to expect: an acknowledgement within a few working days, and an honest
+answer about severity and timing. This is research software maintained
+alongside other work, not a product with an on-call rota — if something needs
+fixing urgently and nobody has replied, say so in the thread and escalate by
+e-mail.
+
+Please give us a reasonable chance to fix an issue before describing it
+publicly. If a vulnerability is already public or being exploited, say that
+immediately and we will skip the quiet part.
+
+### Scope
+
+In scope: this repository's code and its shipped configuration — the gates,
+the framework, `docker-compose.yml`, `proxy/Caddyfile`, the scripts.
+
+Out of scope, though still worth telling us about: vulnerabilities in Airflow,
+Orion-LD, MongoDB, InfluxDB, Caddy or a gate's driver library (report those
+upstream), and anything that requires `.env`, which by design grants
+everything.

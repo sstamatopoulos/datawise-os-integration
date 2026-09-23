@@ -433,11 +433,22 @@ by somebody remembering to check.
       `docker compose up -d`. Writing it found three more Windows-portability
       bugs (see §3), which is fitting for a harness whose job is to find what
       unit tests cannot.
-- [ ] Work through the rest of `docs/publishing-checklist.md`: branch protection with the four CI jobs required, private vulnerability reporting, Dependabot alerts, and the `SECURITY.md` / `CITATION.cff` gaps (maintainers, authors, funding).
+- [x] Work through the rest of `docs/publishing-checklist.md`. Done 2026-09-23:
+      description and topics, issues and discussions, squash-only merges,
+      Dependabot alerts and automated security fixes, a read-only Actions token,
+      a named security contact with a reporting process and scope in
+      `SECURITY.md`, and authorship in `CITATION.cff`. Branch protection and
+      private vulnerability reporting are refused on a private repository, so
+      they are applied immediately after the switch to public. Still open in
+      `CITATION.cff`: the funding programme and grant number, and the Zenodo
+      DOI.
 - [x] Confirm CI is green on `main`. Done 2026-09-22: all five jobs
       (`lint-and-test` 3.12 and 3.13, `packaging`, `gate-extras`, `dags-load`).
       The first run failed on `dags-load` and the fix is recorded in §3.
-- [ ] Tag `v0.2.0` once the stack above has been run, and make the repository public.
+- [x] Make the repository public and tag `v0.2.0`. Done 2026-09-23, with all six
+      CI jobs green, the stack verified end to end, and a pre-publication scan
+      that found a pilot supplier's hostname in a core docstring and its product
+      name in an example variable — both now neutral (§3).
 
 ### M2 — Operability
 
