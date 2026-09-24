@@ -6,6 +6,35 @@ Notable changes per release. Dates are ISO. The project follows
 what "public" means here, and a breaking change to either gets a major bump
 and a migration note.
 
+## Unreleased
+
+### Changed
+
+- **Airflow 3.3.2** (from 3.0.6), on Python 3.12. The image runs SQLAlchemy
+  2.0 (the `sql` gate's tests run on 1.4 and 2.0) and paramiko 5.0. Verified by
+  migrating the 2026-09-22 stack's metadata database in place and running all
+  three enabled gates, the stateless backfill included, with
+  `verify_platform.py` reporting 57 ok and 0 failures.
+- **The Airflow version is written once**, in the Dockerfile's `FROM` line. The
+  constraints file is derived from the image's own `AIRFLOW_VERSION` and
+  interpreter, and CI's `dags-load` job reads the version from the same line.
+  Dependabot's bump to 3.3.2 changed `FROM` alone and would have installed
+  3.0.6's pins, for Python 3.12, into a 3.3.2 image that defaults to 3.13.
+- The compose image is tagged `datagates-airflow:local` instead of carrying a
+  version number that nothing kept in step.
+
+### Fixed
+
+- **`verify_platform.py --gate X` judged other gates' summaries.** It matched a
+  gate's summaries by `dataProvider` or `source`, which two gates on the same
+  upstream share: with `weather_observed` paused, `--gate weather_forecast`
+  failed a healthy gate on the other's eight idle summaries. Summaries are now
+  found by id, `summary_measurement_urn(device, property)`, and a summary that
+  should exist but does not counts as never written.
+- `tzdata` on Windows. There is no system time-zone database there, so
+  `zoneinfo` could not resolve even `UTC`, and 49 tests and every zoned
+  timestamp in the CLI failed on a Windows checkout.
+
 ## 0.2.1 — 2026-09-23
 
 ### Fixed

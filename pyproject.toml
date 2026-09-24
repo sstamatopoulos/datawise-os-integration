@@ -18,7 +18,10 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: System :: Monitoring",
 ]
-dependencies = ["influxdb-client>=1.49", "requests", "tenacity", "PyYAML"]
+# tzdata: Windows has no system IANA database, so zoneinfo cannot resolve even
+# "UTC" there and every timestamp with a zone fails. Linux and the image have one.
+dependencies = ["influxdb-client>=1.49", "requests", "tenacity", "PyYAML",
+                "tzdata; sys_platform == 'win32'"]
 
 # `datagates check <key>` without Airflow; see datagates/cli.py.
 [project.scripts]
