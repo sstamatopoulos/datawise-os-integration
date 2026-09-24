@@ -53,9 +53,10 @@ jobs:
           import asyncua, BAC0, openpyxl, paho.mqtt, paramiko, pymodbus, pysnmp, sqlalchemy
           print("gate drivers ok")
           PY
-      # The image runs SQLAlchemy 1.4, because that is what Airflow 3.0.6 pins,
-      # while a standalone install gets 2.x. The sql gate has to work on both,
-      # so its tests run against both rather than against whichever pip chose.
+      # The image runs SQLAlchemy 2.0 since Airflow 3.3; Airflow 3.0 pinned
+      # 1.4.54, and deployments still on it run the sql gate on 1.4. The gate
+      # has to work on both, so its tests run against both rather than against
+      # whichever pip chose.
       - name: the sql gate on SQLAlchemy 1.4 and 2.x
         run: |
           pip install -r requirements-dev.txt
@@ -109,6 +110,7 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/plugins
       DATAGATES_CONFIG: ${{ github.workspace }}/config/gates.yaml
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       TB_USERNAME: u
       TB_PASSWORD: p
       INDOOR_AIR_API_KEY: k
@@ -117,9 +119,15 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
+      # The Airflow the image runs, read from the Dockerfile's FROM line, so
+      # this job cannot keep testing one release while the image ships another.
       - run: |
-          pip install "apache-airflow==3.0.6" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.0.6/constraints-3.12.txt"
-          pip install -r requirements.txt
+          AIRFLOW_VERSION="$(sed -nE 's#^FROM apache/airflow:([0-9.]+).*#\1#p' Dockerfile)"
+          test -n "$AIRFLOW_VERSION"
+          echo "Airflow ${AIRFLOW_VERSION} from the Dockerfile"
+          CONSTRAINTS="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.12.txt"
+          pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "$CONSTRAINTS"
+          pip install -r requirements.txt --constraint "$CONSTRAINTS"
       - name: the DAG bag of the enabled gates
         run: |
           python - <<'PY'
@@ -136,7 +144,10 @@ jobs:
           # behaviour, and it only parses files containing both "dag" and
           # "airflow". Passing safe_mode=False here made this job pass while
           # the real dag-processor found zero files.
-          bag = DagBag(dag_folder="dags", include_examples=False)
+          #
+          # Examples are kept out by AIRFLOW__CORE__LOAD_EXAMPLES in the job's
+          # env: Airflow 3.3 removed DagBag's include_examples argument.
+          bag = DagBag(dag_folder="dags")
           for path, message in bag.import_errors.items():
               print(f"::error file={path}::{message}")
           assert not bag.import_errors, "the DAG folder has import errors"

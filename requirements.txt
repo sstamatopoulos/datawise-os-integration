@@ -1,6 +1,6 @@
 # Installed into the Airflow image (see Dockerfile) under Airflow's constraints.
 #
-# A floor, not an exact pin. Airflow 3.0.6's constraints file pins
+# A floor, not an exact pin. Airflow 3.0.6's constraints file pinned
 # influxdb-client==1.49.0, so `influxdb-client==1.50.0` here could not install
 # at all inside the image: pip refuses with "The user requested
 # influxdb-client==1.50.0 / The user requested (constraint)
@@ -13,3 +13,6 @@ influxdb-client>=1.49
 requests
 tenacity
 PyYAML
+# Windows only: no system time-zone database there, so zoneinfo cannot even
+# resolve "UTC" without it (the image and Linux hosts have one).
+tzdata; sys_platform == "win32"

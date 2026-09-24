@@ -165,10 +165,20 @@ def devices_of(gate) -> list[dict[str, Any]]:
                          type=",".join(sorted({s.entity_type for s in gate.discover()}) or ["Device"])))
 
 
-def summaries_of(gate) -> list[dict[str, Any]]:
-    return [e for e in as_list(orion("/ngsi-ld/v1/entities", type="DeviceMeasurement",
-                                     q='entityKind=="summary"', limit=1000))
-            if plain(e, "dataProvider") == gate.data_provider or plain(e, "source") == gate.source]
+def summaries_of(devices: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    """The summaries of these devices, and how many they should have but do not.
+
+    Found by id -- summary_measurement_urn(device, property) -- which is the
+    only thing that ties a summary to one gate. This used to match on
+    dataProvider or source, and two gates reading the same upstream share
+    both: with weather_observed paused, `--gate weather_forecast` reported
+    its eight idle summaries as weather_forecast's and failed a healthy gate.
+    """
+    expected = {summary_measurement_urn(d["id"], p) for d in devices for p in as_list(plain(d, "controlledProperty"))}
+    found = [e for e in as_list(orion("/ngsi-ld/v1/entities", type="DeviceMeasurement",
+                                      q='entityKind=="summary"', limit=1000))
+             if e.get("id") in expected]
+    return found, len(expected) - len(found)
 
 
 def check_model(report: Report, gates: list) -> dict[str, list[dict[str, Any]]]:
@@ -235,14 +245,15 @@ def check_bridge(report: Report, gates: list, devices: dict[str, list[dict[str, 
                            OK if counted else WARN, f"{counted} point(s) in the last 90 days")
 
 
-def check_freshness(report: Report, gates: list) -> None:
+def check_freshness(report: Report, gates: list, devices: dict[str, list[dict[str, Any]]]) -> None:
     section("freshness")
     now = datetime.now(UTC)
     for gate in gates:
         interval = expected_interval(gate.schedule)
         allowed = (interval or timedelta(days=1)) * ARGS.tolerance
-        stale = fresh = missing = 0
-        for summary in summaries_of(gate):
+        stale = fresh = 0
+        summaries, missing = summaries_of(devices.get(gate.key, []))
+        for summary in summaries:
             last = plain(summary, "lastReadingAt")
             if not last:
                 missing += 1
@@ -316,7 +327,9 @@ def main(argv: list[str] | None = None) -> int:
         devices = devices or check_model(report, gates)
         check_bridge(report, gates, devices)
     if "freshness" in wanted:
-        check_freshness(report, gates)
+        if not devices:
+            devices = {g.key: devices_of(g) for g in gates}
+        check_freshness(report, gates, devices)
     if "queries" in wanted:
         check_queries(report, gates)
 

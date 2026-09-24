@@ -31,7 +31,8 @@ Do not publish a stack nobody has started. §2 of `ROADMAP.md` lists what is
 still unverified; these are the same items.
 
 - [x] `ruff check .` clean and `pytest` green on 3.12 and 3.13. **Done**:
-      CI is green on `main`, including the DAG factory under Airflow 3.0.6.
+      CI is green on `main`, including the DAG factory under the Airflow the
+      Dockerfile names (3.3.2 since 2026-09-24).
 - [x] `docker compose up -d --build` on a clean machine. **Done 2026-09-22**;
       the seven fixes it cost are in `ROADMAP.md` §3.
 - [x] One full cycle, for all three credential-free gates. **Done 2026-09-22**:

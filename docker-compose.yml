@@ -27,7 +27,8 @@ x-logging: &default-logging
 
 x-airflow-common: &airflow-common
   build: .
-  image: datagates-airflow:3.0.6
+  # Unversioned on purpose: the Airflow version lives in the Dockerfile only.
+  image: datagates-airflow:local
   logging: *default-logging
   environment: &airflow-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor

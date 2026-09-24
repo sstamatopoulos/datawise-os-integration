@@ -38,7 +38,7 @@ framework. Improvements made here can be ported back, and vice versa, by hand.
 | Gate types (24) | field protocols `modbus`, `bacnet`, `opcua`, `s7`, `snmp`; files `csv_drop`, `excel_drop`, `xml_drop`, `remote_drop`; web and messaging `http_json`, `http_xml`, `http_csv`, `obix`, `zabbix`, `thingsboard`, `mqtt`; stores `sql`, `influx_source`, `prometheus`, `ngsi_ld`, `ngsi_v2`; weather and markets `open_meteo`, `nordpool`, `entsoe`. |
 | `config/gates.yaml` | Three credential-free gates enabled, and a working disabled example of **every** type — the catalogue, enforced by a test. 25 entries, 68 DAGs. |
 | `requirements-gates.txt`, `pyproject.toml` extras | The optional drivers, one extra per gate group. The image installs them by default (`INSTALL_GATE_EXTRAS=0` to skip). `pip install .` exposes the `datagates` package. |
-| `docker-compose.yml` + `proxy/Caddyfile` | Caddy (TLS, HSTS, API-key gate for the broker) is the only published service. Airflow 3.0.6 LocalExecutor + Postgres, Orion-LD 1.5.1 + MongoDB 4.4 (auth on), InfluxDB 2.7 (token). Secrets from `scripts/gen-secrets.sh`. `./scripts` is mounted into the workers; gate `${VAR}`s are forwarded. See `SECURITY.md`. |
+| `docker-compose.yml` + `proxy/Caddyfile` | Caddy (TLS, HSTS, API-key gate for the broker) is the only published service. Airflow 3.3.2 (Python 3.12) LocalExecutor + Postgres, Orion-LD 1.5.1 + MongoDB 4.4 (auth on), InfluxDB 2.7 (token). Secrets from `scripts/gen-secrets.sh`. `./scripts` is mounted into the workers; gate `${VAR}`s are forwarded. See `SECURITY.md`. |
 | `scripts/verify_platform.py` | Checks a live deployment: connectivity, model, the Orion→InfluxDB bridge (using the real `summary_measurement_urn`), freshness against each gate's cadence, and the `q=` filters. `--json`, `--gate`, `--section`, `--tolerance`; exit 1 on any failure. |
 | `scripts/mqtt_spool.py` | The always-on subscriber for `mqtt` gates in spool mode; hands files over by rename. |
 | `clients/python/datagates_client.py` | Consumer client ported from the production data-access guide. |
@@ -361,6 +361,17 @@ warnings.
   was the only job that could see it — and it is the reason the job exists.
   `requirements.txt` states floors now; inside the image the constraints file
   decides, and outside it pip resolves freely. Found 2026-09-23.
+- **The Airflow version is written once: the Dockerfile's `FROM` line.** The
+  constraints file is derived inside the build from the image's own
+  `AIRFLOW_VERSION` and interpreter, and CI's `dags-load` job reads the version
+  from that line. Dependabot's first Airflow bump (3.0.6 to 3.3.2) changed
+  `FROM` and nothing else, so merging it would have installed 3.0.6's pins
+  into a 3.3.2 image -- and for Python 3.12, while the 3.3 images default to
+  3.13. The tag carries an explicit `-python3.12` for the same reason. A future
+  bump of that one line is now self-consistent, and the `integration` job
+  decides whether it works. Found 2026-09-24; the upgrade itself was verified
+  by migrating the 2026-09-22 stack's metadata database in place and running
+  all three enabled gates.
 - **A query that maps nothing says so.** In the `sql` gate's `long` layout the
   keys of `columns` are the *values* of `property_column`, so a fleet needs one
   entry per tag. Adding a device without its mapping made the gate return

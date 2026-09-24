@@ -28,8 +28,9 @@ python scripts/verify_platform.py       # against a running stack
 ```
 
 The DAG factory needs Airflow to import; locally that means the compose
-stack or `pip install apache-airflow==3.0.6` under its constraints file (see
-`.github/workflows/ci.yml`).
+stack or `pip install apache-airflow==<version>` under its constraints file,
+where `<version>` is the one in the Dockerfile's `FROM` line (the only place it
+is written down; see the `dags-load` job in `.github/workflows/ci.yml`).
 
 ## Rules
 
