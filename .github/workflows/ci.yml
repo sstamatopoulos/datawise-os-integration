@@ -110,6 +110,7 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/plugins
       DATAGATES_CONFIG: ${{ github.workspace }}/config/gates.yaml
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       TB_USERNAME: u
       TB_PASSWORD: p
       INDOOR_AIR_API_KEY: k
@@ -143,7 +144,10 @@ jobs:
           # behaviour, and it only parses files containing both "dag" and
           # "airflow". Passing safe_mode=False here made this job pass while
           # the real dag-processor found zero files.
-          bag = DagBag(dag_folder="dags", include_examples=False)
+          #
+          # Examples are kept out by AIRFLOW__CORE__LOAD_EXAMPLES in the job's
+          # env: Airflow 3.3 removed DagBag's include_examples argument.
+          bag = DagBag(dag_folder="dags")
           for path, message in bag.import_errors.items():
               print(f"::error file={path}::{message}")
           assert not bag.import_errors, "the DAG folder has import errors"
